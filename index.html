@@ -1,0 +1,254 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AlphaLog V1.2 - 实盘驾驶舱</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    colors: {
+                        dark: '#0f172a',
+                        card: '#1e293b',
+                        accent: '#3b82f6',
+                        danger: '#ef4444', 
+                        success: '#22c55e', // 绿涨
+                        warning: '#f59e0b',
+                    }
+                }
+            }
+        }
+    </script>
+</head>
+<body class="bg-dark text-slate-200 font-sans antialiased min-h-screen p-4 md:p-8">
+
+    <nav class="flex justify-between items-center mb-6">
+        <h1 class="text-2xl font-bold text-white flex items-center">
+            <i class="fa-solid fa-layer-group text-accent mr-2"></i> 
+            AlphaLog <span class="ml-2 text-xs bg-accent/20 text-accent px-2 py-0.5 rounded">实盘数据版</span>
+        </h1>
+        <div class="flex items-center space-x-3 text-sm">
+            <div class="bg-card px-3 py-1 rounded-full border border-slate-700">
+                <span class="text-slate-400">USD/CNY:</span>
+                <input type="number" id="exchangeRate" value="7.28" class="w-14 bg-transparent text-right font-bold text-white focus:outline-none" onchange="updateDashboard()">
+            </div>
+        </div>
+    </nav>
+
+    <div class="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
+        <div class="bg-slate-800 p-5 rounded-xl border-l-4 border-accent shadow-lg">
+            <p class="text-slate-400 text-xs uppercase">总资产 (RMB)</p>
+            <h2 class="text-3xl font-bold text-white mt-1 font-mono" id="totalAsset">---</h2>
+            <p class="text-xs text-slate-500 mt-2">含 A股/港美股QDII/美元现金</p>
+        </div>
+
+        <div class="bg-slate-800 p-5 rounded-xl border-l-4 border-emerald-500 shadow-lg relative overflow-hidden">
+            <i class="fa-solid fa-car absolute right-2 bottom-2 text-6xl text-emerald-500/10"></i>
+            <p class="text-slate-400 text-xs uppercase">购车储备 (USD Cash)</p>
+            <h2 class="text-2xl font-bold text-emerald-400 mt-1 font-mono">$18,000</h2>
+            <p class="text-xs text-slate-400 mt-1" id="usdToCnyDisplay">≈ ¥ ---</p>
+            <div class="mt-2 w-full bg-slate-700 h-1.5 rounded-full">
+                <div class="bg-emerald-500 h-1.5 rounded-full" id="carProgress" style="width: 0%"></div>
+            </div>
+            <p class="text-[10px] text-slate-500 mt-1">目标: 30万 (进度 <span id="carPercent">0%</span>)</p>
+        </div>
+
+        <div class="bg-slate-800 p-5 rounded-xl border-l-4 border-purple-500 shadow-lg">
+            <p class="text-slate-400 text-xs uppercase">第一大重仓</p>
+            <h2 class="text-xl font-bold text-white mt-1 truncate">易方达深证100</h2>
+            <div class="flex justify-between items-end mt-2">
+                <span class="text-2xl font-mono text-danger font-bold">+15.1%</span>
+                <span class="text-xs text-slate-500">仓位: ¥4.9万</span>
+            </div>
+        </div>
+
+        <div class="bg-slate-800 p-5 rounded-xl border-l-4 border-red-500 shadow-lg">
+            <p class="text-slate-400 text-xs uppercase">重点关注 (回撤最大)</p>
+            <h2 class="text-xl font-bold text-white mt-1 truncate">港股医药ETF</h2>
+            <div class="flex justify-between items-end mt-2">
+                <span class="text-2xl font-mono text-success font-bold">-40.1%</span>
+                <span class="text-xs text-slate-500">需决策: 补仓/止损?</span>
+            </div>
+        </div>
+    </div>
+
+    <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        
+        <div class="lg:col-span-2 space-y-4">
+            <div class="flex justify-between items-center px-1">
+                <h3 class="font-bold text-white">持仓明细 <span class="text-xs font-normal text-slate-400 bg-slate-800 px-2 py-1 rounded ml-2" id="itemCount">0 items</span></h3>
+                <div class="text-xs text-slate-500">
+                    <span class="mr-2"><span class="w-2 h-2 inline-block rounded-full bg-danger"></span> 盈利</span>
+                    <span><span class="w-2 h-2 inline-block rounded-full bg-success"></span> 亏损</span>
+                </div>
+            </div>
+            
+            <div id="portfolioList" class="space-y-3">
+                </div>
+        </div>
+
+        <div class="space-y-6">
+            <div class="bg-card border border-slate-700 rounded-xl p-5">
+                <h3 class="font-bold text-white mb-4"><i class="fa-solid fa-user-doctor text-accent mr-2"></i>CIO 诊断</h3>
+                
+                <div class="mb-4">
+                    <p class="text-xs text-slate-400 mb-1">风格分析</p>
+                    <div class="flex flex-wrap gap-2">
+                        <span class="text-xs bg-slate-700 text-slate-300 px-2 py-1 rounded">核心宽基稳健</span>
+                        <span class="text-xs bg-slate-700 text-slate-300 px-2 py-1 rounded">QDII分散配置</span>
+                        <span class="text-xs bg-yellow-900/50 text-yellow-500 px-2 py-1 rounded border border-yellow-700/50">波段操作频繁</span>
+                    </div>
+                </div>
+
+                <div class="space-y-3">
+                    <div class="bg-slate-800/50 p-3 rounded text-sm text-slate-300 border-l-2 border-danger">
+                        <span class="font-bold text-danger block mb-1">👍 亮点：通信ETF (515880)</span>
+                        成本优势极大（翻倍收益），这是典型的“戴维斯双击”成功案例。建议作为长期底仓，不要轻易卖飞。
+                    </div>
+                    
+                    <div class="bg-slate-800/50 p-3 rounded text-sm text-slate-300 border-l-2 border-success">
+                        <span class="font-bold text-success block mb-1">⚠️ 警报：港股医药 (513200)</span>
+                        当前亏损 -40%。技术面处于深水区。根据您的《清仓记录》，您之前有割肉“长风药业”的操作。
+                        <br><br>
+                        <button class="w-full bg-slate-700 hover:bg-slate-600 text-xs py-1 rounded transition">生成专项拯救计划</button>
+                    </div>
+
+                    <div class="bg-slate-800/50 p-3 rounded text-sm text-slate-300 border-l-2 border-warning">
+                        <span class="font-bold text-warning block mb-1">⚡ 提醒：频繁T+0</span>
+                        检测到 `科创板50` 和 `光伏` 存在大量短期买卖。
+                        <br>AlphaLog 建议：请确保每次波段利润覆盖手续费摩擦。
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // ==========================================
+        // 🟢 您的真实数据 (从 Excel 提取)
+        // ==========================================
+        const rawData = [
+            // --- 现金 ---
+            { code: "USD", name: "美元现金储备", value: 18000, pl_rate: 0.05, type: "cash", cost: 1, currency: "USD" },
+            
+            // --- 宽基/核心 (Core) ---
+            { code: "004742", name: "易方达深证100联接", value: 49186.49, pl_rate: 0.1510, type: "fund", cost: 1.68, currency: "CNY" },
+            { code: "007339", name: "易方达沪深300联接", value: 44016.20, pl_rate: 0.1351, type: "fund", cost: 1.78, currency: "CNY" },
+            { code: "159915", name: "创业板ETF", value: 5202.00, pl_rate: 0.0160, type: "etf", cost: 3.06, currency: "CNY" },
+            { code: "159781", name: "科创创业50", value: 14905.80, pl_rate: 0.0457, type: "etf", cost: 0.88, currency: "CNY" },
+            
+            // --- 行业/策略 (Satellite) ---
+            { code: "515880", name: "通信ETF", value: 2826.00, pl_rate: 0.9170, type: "etf", cost: 1.47, currency: "CNY", highlight: "best" }, // 盈亏率极高
+            { code: "512400", name: "有色ETF", value: 14406.00, pl_rate: 0.0442, type: "etf", cost: 1.71, currency: "CNY" },
+            { code: "560980", name: "光伏龙头ETF", value: 16445.80, pl_rate: 0.0505, type: "etf", cost: 0.69, currency: "CNY" },
+            { code: "009505", name: "富国上海金ETF联接", value: 8324.46, pl_rate: 0.0255, type: "fund", cost: 1.78, currency: "CNY" },
+            { code: "512820", name: "银行股基", value: 4260.00, pl_rate: 0.0131, type: "etf", cost: 1.42, currency: "CNY" },
+            
+            // --- 困难户 (Problematic) ---
+            { code: "513200", name: "港股医药ETF", value: 2558.40, pl_rate: -0.4009, type: "etf", cost: 1.06, currency: "CNY", highlight: "worst" },
+            { code: "008764", name: "天弘越南市场(QDII)", value: 9073.04, pl_rate: -0.0750, type: "qdii", cost: 1.74, currency: "CNY" },
+            { code: "588290", name: "芯片科创ETF", value: 8003.10, pl_rate: -0.0238, type: "etf", cost: 2.16, currency: "CNY" },
+            { code: "002648", name: "卫星化学", value: 0, pl_rate: -0.0384, type: "stock", cost: 16.27, currency: "CNY", note: "清仓中?" }, // 金额0但有盈亏记录
+
+            // --- 其他 QDII ---
+            { code: "513880", name: "日经225 ETF", value: 14711.70, pl_rate: -0.0664, type: "etf", cost: 1.65, currency: "CNY" }, // 场内
+            { code: "020712", name: "华安日经225联接", value: 9801.22, pl_rate: 0.0535, type: "qdii", cost: 1.08, currency: "CNY" }, // 场外
+            { code: "017436", name: "华宝纳斯达克精选", value: 6059.19, pl_rate: -0.0330, type: "qdii", cost: 2.28, currency: "CNY" },
+            { code: "007455", name: "富国蓝筹QDII", value: 4806.39, pl_rate: 0.0233, type: "qdii", cost: 3.12, currency: "CNY" },
+        ];
+
+        function updateDashboard() {
+            const usdRate = parseFloat(document.getElementById('exchangeRate').value);
+            const list = document.getElementById('portfolioList');
+            
+            let totalCNY = 0;
+            let listHTML = '';
+
+            // 排序：按金额大小排序，方便看重点
+            const sortedData = rawData.sort((a, b) => b.value - a.value);
+            
+            document.getElementById('itemCount').innerText = rawData.length + " items";
+
+            sortedData.forEach(item => {
+                // 计算当前价值 (CNY)
+                let currentValCNY = item.value;
+                let displayVal = `¥${item.value.toLocaleString()}`;
+                
+                if (item.currency === 'USD') {
+                    currentValCNY = item.value * usdRate;
+                    displayVal = `$${item.value.toLocaleString()}`;
+                }
+
+                if(item.value > 0) { // 只统计有持仓的
+                    totalCNY += currentValCNY;
+                }
+
+                // 颜色逻辑：中国习惯红涨绿跌
+                const isProfit = item.pl_rate >= 0;
+                const plColor = isProfit ? 'text-danger' : 'text-success';
+                const plBg = isProfit ? 'bg-danger/10' : 'bg-success/10';
+                const plIcon = isProfit ? 'fa-arrow-up' : 'fa-arrow-down';
+                const plSign = isProfit ? '+' : '';
+
+                // 标签样式
+                let typeTagColor = 'bg-slate-700 text-slate-400';
+                if(item.type === 'cash') typeTagColor = 'bg-emerald-900 text-emerald-400 border border-emerald-700';
+                if(item.type === 'fund') typeTagColor = 'bg-blue-900 text-blue-300 border border-blue-700';
+                if(item.type === 'qdii') typeTagColor = 'bg-purple-900 text-purple-300 border border-purple-700';
+
+                // 生成列表 HTML
+                listHTML += `
+                <div class="bg-card p-4 rounded-xl border border-slate-700 flex justify-between items-center hover:bg-slate-700/50 transition group">
+                    <div class="flex items-center space-x-3">
+                        <div class="w-10 h-10 rounded-full ${plBg} flex items-center justify-center shrink-0">
+                            <i class="fa-solid ${plIcon} ${plColor} text-sm"></i>
+                        </div>
+                        <div>
+                            <div class="flex items-center space-x-2">
+                                <span class="font-bold text-white text-sm md:text-base">${item.name}</span>
+                                <span class="text-[10px] px-1.5 py-0.5 rounded ${typeTagColor} uppercase">${item.type}</span>
+                                <span class="text-[10px] text-slate-500 font-mono">${item.code}</span>
+                            </div>
+                            <div class="flex space-x-3 mt-1 text-xs text-slate-400">
+                                <span>成本: ${item.cost}</span>
+                                ${item.highlight === 'worst' ? '<span class="text-success font-bold px-1 bg-success/20 rounded">需处理</span>' : ''}
+                                ${item.highlight === 'best' ? '<span class="text-danger font-bold px-1 bg-danger/20 rounded">MVP</span>' : ''}
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="text-right">
+                        <div class="font-mono text-white font-bold">${displayVal}</div>
+                        <div class="text-xs ${plColor} font-bold mt-0.5">${plSign}${(item.pl_rate * 100).toFixed(2)}%</div>
+                    </div>
+                </div>
+                `;
+            });
+
+            // 渲染列表
+            list.innerHTML = listHTML;
+
+            // 更新总资产
+            document.getElementById('totalAsset').innerText = "¥ " + totalCNY.toLocaleString('zh-CN', { maximumFractionDigits: 0 });
+
+            // 更新购车逻辑 (1.8W USD)
+            const carTarget = 300000;
+            const usdCash = rawData.find(i => i.code === 'USD');
+            if (usdCash) {
+                const usdInCny = usdCash.value * usdRate;
+                document.getElementById('usdToCnyDisplay').innerText = `≈ ¥ ${usdInCny.toLocaleString('zh-CN', { maximumFractionDigits: 0 })}`;
+                const percent = Math.min((usdInCny / carTarget) * 100, 100);
+                document.getElementById('carProgress').style.width = percent + "%";
+                document.getElementById('carPercent').innerText = percent.toFixed(1) + "%";
+            }
+        }
+
+        // 初始化
+        updateDashboard();
+    </script>
+</body>
+</html>
