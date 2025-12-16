@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>AlphaLog V1.6 - 全景复盘版</title>
+    <title>AlphaLog V1.8 - 实时行情版</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
@@ -28,24 +28,53 @@
 
     <nav class="sticky top-0 z-30 bg-dark/90 backdrop-blur-md border-b border-slate-800 px-4 py-3 flex justify-between items-center shadow-lg">
         <h1 class="font-bold text-xl tracking-tight text-white flex items-center">
-            <i class="fa-solid fa-layer-group text-accent mr-2"></i> AlphaLog <span class="text-[10px] ml-2 bg-slate-800 px-2 py-0.5 rounded text-slate-400">Pro</span>
+            <i class="fa-solid fa-bolt text-accent mr-2"></i> AlphaLog <span class="text-[10px] ml-2 bg-slate-800 px-2 py-0.5 rounded text-slate-400">Live</span>
         </h1>
-        <div class="flex items-center bg-slate-800 px-3 py-1.5 rounded-full border border-slate-700">
-            <span class="text-xs text-slate-400 mr-2">USD/CNY</span>
-            <input type="number" id="exchangeRate" class="w-12 bg-transparent text-right font-bold text-white text-sm focus:outline-none" onchange="updateDashboard(true)">
+        <div class="flex items-center gap-3">
+            <button onclick="fetchRealTimeData()" id="refreshBtn" class="flex items-center gap-2 bg-emerald-900/50 hover:bg-emerald-800 text-emerald-400 border border-emerald-800 px-3 py-1.5 rounded-full text-xs font-bold transition">
+                <i class="fa-solid fa-rotate"></i> <span id="refreshText">刷新行情</span>
+            </button>
+            
+            <button onclick="toggleSettings()" class="w-8 h-8 rounded-full bg-slate-800 flex items-center justify-center hover:bg-slate-700 transition">
+                <i class="fa-solid fa-gear text-slate-400"></i>
+            </button>
         </div>
     </nav>
+
+    <div id="settingsPanel" class="hidden bg-slate-800 border-b border-slate-700 p-4 animate-fade-in-down">
+        <div class="max-w-5xl mx-auto flex justify-between items-center">
+            <div class="text-sm text-slate-400">
+                <p class="font-bold text-white mb-1">汇率 & 数据</p>
+                <div class="flex items-center gap-2">
+                    <span>USD汇率:</span>
+                    <input type="number" id="exchangeRate" class="bg-slate-900 border border-slate-600 rounded px-2 py-0.5 w-16 text-center" onchange="updateDashboard(true)">
+                </div>
+            </div>
+            <div class="flex gap-3">
+                <button onclick="exportData()" class="bg-blue-900/50 hover:bg-blue-800 text-blue-300 px-4 py-2 rounded-lg text-xs flex items-center border border-blue-800">
+                    <i class="fa-solid fa-download mr-2"></i> 备份
+                </button>
+                <label class="bg-slate-700 hover:bg-slate-600 text-slate-300 px-4 py-2 rounded-lg text-xs flex items-center border border-slate-600 cursor-pointer">
+                    <i class="fa-solid fa-upload mr-2"></i> 恢复
+                    <input type="file" id="importFile" class="hidden" onchange="importData(this)">
+                </label>
+            </div>
+        </div>
+    </div>
 
     <div class="max-w-5xl mx-auto p-4 space-y-6">
         
         <div class="grid grid-cols-1 md:grid-cols-12 gap-4">
             <div class="md:col-span-7 bg-gradient-to-br from-slate-800 to-slate-900 p-6 rounded-3xl border border-slate-700 shadow-2xl relative overflow-hidden">
-                <p class="text-slate-400 text-xs font-medium uppercase tracking-wider">净资产总额 (RMB)</p>
+                <div class="flex justify-between items-start">
+                    <p class="text-slate-400 text-xs font-medium uppercase tracking-wider">实时净资产 (RMB)</p>
+                    <span class="text-[10px] text-slate-500" id="lastUpdateTime">未同步</span>
+                </div>
                 <div class="flex items-baseline mt-2">
                     <h2 class="text-4xl md:text-5xl font-bold text-white font-mono tracking-tighter" id="totalAssetDisplay">---</h2>
                 </div>
                 <div class="mt-6 flex items-center bg-slate-800/50 p-2 rounded-lg border border-slate-700/50 w-fit">
-                    <span class="text-xs text-slate-400 mr-2"><i class="fa-solid fa-building-columns mr-1"></i>银行存款(补差):</span>
+                    <span class="text-xs text-slate-400 mr-2">资金池(补差):</span>
                     <span class="text-xs text-slate-500 mr-1">¥</span>
                     <input type="number" id="rmbCashInput" class="bg-transparent border-b border-slate-600 text-white font-mono w-24 focus:border-accent focus:outline-none text-sm" placeholder="0" onchange="updateDashboard(true)">
                 </div>
@@ -54,15 +83,15 @@
             <div class="md:col-span-5 bg-slate-800 p-4 rounded-3xl border border-slate-700 shadow-xl flex items-center relative h-48">
                 <div class="w-1/2 h-full flex flex-col justify-center pl-2 space-y-2">
                     <div>
-                        <div class="text-[10px] text-slate-500 uppercase">A股权益</div>
+                        <div class="text-[10px] text-slate-500 uppercase">A股</div>
                         <div class="text-lg font-bold text-blue-400" id="cnRatio">--%</div>
                     </div>
                     <div>
-                        <div class="text-[10px] text-slate-500 uppercase">海外/QDII</div>
+                        <div class="text-[10px] text-slate-500 uppercase">海外</div>
                         <div class="text-lg font-bold text-purple-400" id="globalRatio">--%</div>
                     </div>
                     <div>
-                        <div class="text-[10px] text-slate-500 uppercase">现金(含USD)</div>
+                        <div class="text-[10px] text-slate-500 uppercase">现金</div>
                         <div class="text-lg font-bold text-emerald-400" id="cashRatio">--%</div>
                     </div>
                 </div>
@@ -72,22 +101,10 @@
             </div>
         </div>
 
-        <div>
-            <div class="flex justify-between items-end mb-3 px-1">
-                <h3 class="font-bold text-white text-md"><i class="fa-solid fa-clock-rotate-left mr-2 text-accent"></i>复盘日志</h3>
-                <span class="text-[10px] text-slate-500 bg-slate-800 px-2 py-1 rounded">本地存储</span>
-            </div>
-            <div id="transactionLog" class="space-y-3">
-                <div class="text-center py-6 text-slate-600 text-xs bg-slate-800/30 rounded-2xl border border-slate-800 border-dashed">
-                    点击右下角 "+" 记录您的第一笔复盘交易
-                </div>
-            </div>
-        </div>
-
         <div class="bg-slate-900/50 rounded-3xl p-4 border border-slate-800">
             <div class="flex justify-between items-center mb-4 cursor-pointer" onclick="toggleHoldings()">
                 <h3 class="font-bold text-white text-md">
-                    <i class="fa-solid fa-list-ul mr-2 text-slate-400"></i>当前持仓 
+                    <i class="fa-solid fa-list-ul mr-2 text-slate-400"></i>持仓监控 
                     <span class="text-xs font-normal text-slate-500 ml-2" id="holdingsCount">(--)</span>
                 </h3>
                 <div class="flex items-center text-xs text-slate-400 bg-slate-800 px-3 py-1 rounded-full hover:text-white transition">
@@ -96,50 +113,58 @@
                 </div>
             </div>
             
-            <div id="holdingsList" class="space-y-3 max-h-[300px] overflow-hidden transition-all duration-500 ease-in-out relative">
-                <div class="absolute bottom-0 left-0 right-0 h-10 bg-gradient-to-t from-slate-900 to-transparent pointer-events-none" id="listFade"></div>
+            <div id="holdingsListContainer" class="overflow-hidden transition-all duration-500 ease-in-out max-h-[280px]">
+                <div id="holdingsList" class="space-y-3 pb-2">
+                    </div>
+                <div class="absolute bottom-0 left-0 right-0 h-12 bg-gradient-to-t from-slate-900 to-transparent pointer-events-none" id="listFade"></div>
             </div>
         </div>
+        
+        <div>
+             <div class="flex justify-between items-end mb-3 px-1">
+                <h3 class="font-bold text-white text-md"><i class="fa-solid fa-clock-rotate-left mr-2 text-accent"></i>复盘日志</h3>
+            </div>
+            <div id="transactionLog" class="space-y-3"></div>
+        </div>
+
     </div>
 
-    <button onclick="openTradeDrawer()" class="fixed bottom-6 right-6 w-14 h-14 bg-accent hover:bg-blue-600 rounded-full shadow-2xl shadow-blue-500/30 flex items-center justify-center text-white text-2xl z-40 transition-transform hover:scale-110 active:scale-95">
+    <button onclick="openTradeDrawer()" class="fixed bottom-6 right-6 w-14 h-14 bg-accent hover:bg-blue-600 rounded-full shadow-2xl flex items-center justify-center text-white text-2xl z-40 transition-transform hover:scale-110 active:scale-95">
         <i class="fa-solid fa-plus"></i>
     </button>
 
     <div id="tradeDrawer" class="fixed inset-0 z-50 hidden">
         <div class="absolute inset-0 bg-black/80 backdrop-blur-sm transition-opacity" onclick="closeTradeDrawer()"></div>
         <div class="absolute bottom-0 left-0 right-0 bg-card rounded-t-3xl border-t border-slate-600 shadow-2xl h-[85vh] transform transition-transform duration-300 translate-y-full flex flex-col" id="drawerContent">
-            
             <div class="w-full flex justify-center pt-3 pb-1" onclick="closeTradeDrawer()"><div class="w-12 h-1.5 bg-slate-600 rounded-full"></div></div>
-
             <div class="px-6 py-4 border-b border-slate-700 flex justify-between items-center">
-                <h2 class="text-xl font-bold text-white">交易决策实验室</h2>
+                <h2 class="text-xl font-bold text-white">记账 & 复盘</h2>
                 <button onclick="closeTradeDrawer()" class="text-slate-400 hover:text-white bg-slate-800 px-3 py-1 rounded-full text-xs">取消</button>
             </div>
-
             <div class="flex-1 overflow-y-auto p-6 space-y-6">
                 <div class="bg-slate-800/50 p-4 rounded-xl border border-slate-700">
                     <h3 class="text-xs text-slate-400 uppercase font-bold mb-3">1. 交易指令</h3>
                     <div class="grid grid-cols-2 gap-4 mb-3">
                         <div>
-                            <label class="text-xs text-slate-500 block mb-1">代码/名称</label>
-                            <input type="text" id="tCode" placeholder="如 NVDA" class="w-full bg-slate-900 border border-slate-600 rounded p-2 text-white text-sm outline-none focus:border-accent">
+                            <label class="text-xs text-slate-500 block mb-1">代码</label>
+                            <input type="text" id="tCode" list="stockOptions" placeholder="如 512400" class="w-full bg-slate-900 border border-slate-600 rounded p-2 text-white text-sm outline-none focus:border-accent uppercase">
+                            <datalist id="stockOptions"></datalist>
                         </div>
                         <div>
                             <label class="text-xs text-slate-500 block mb-1">方向</label>
                             <select id="tType" class="w-full bg-slate-900 border border-slate-600 rounded p-2 text-white text-sm outline-none focus:border-accent">
-                                <option value="buy">买入 (消耗现金)</option>
-                                <option value="sell">卖出 (回笼现金)</option>
+                                <option value="buy">买入</option>
+                                <option value="sell">卖出</option>
                             </select>
                         </div>
                     </div>
                     <div class="grid grid-cols-2 gap-4">
                         <div>
-                            <label class="text-xs text-slate-500 block mb-1">成交总额 (CNY)</label>
-                            <input type="number" id="tAmount" placeholder="0" class="w-full bg-slate-900 border border-slate-600 rounded p-2 text-white text-sm outline-none focus:border-accent font-mono font-bold">
+                            <label class="text-xs text-slate-500 block mb-1">成交额(CNY)</label>
+                            <input type="number" id="tAmount" placeholder="0" class="w-full bg-slate-900 border border-slate-600 rounded p-2 text-white text-sm outline-none focus:border-accent">
                         </div>
                         <div>
-                            <label class="text-xs text-slate-500 block mb-1">情绪状态</label>
+                            <label class="text-xs text-slate-500 block mb-1">情绪</label>
                             <select id="tMood" class="w-full bg-slate-900 border border-slate-600 rounded p-2 text-white text-sm outline-none focus:border-accent">
                                 <option value="calm">冷静/按计划</option>
                                 <option value="fomo">急躁/怕踏空</option>
@@ -149,104 +174,169 @@
                         </div>
                     </div>
                 </div>
-
-                <div class="bg-slate-800/50 p-4 rounded-xl border border-slate-700 relative overflow-hidden">
-                    <div class="absolute top-0 right-0 p-2 opacity-10"><i class="fa-solid fa-gavel text-6xl"></i></div>
-                    <h3 class="text-xs text-accent uppercase font-bold mb-2">2. CIO 逻辑审查 (必填)</h3>
-                    <textarea id="tLogic" class="w-full bg-slate-900 border border-slate-600 rounded p-3 text-white text-sm h-24 outline-none focus:border-accent resize-none" placeholder="为什么操作？止损位在哪？..."></textarea>
+                <div class="bg-slate-800/50 p-4 rounded-xl border border-slate-700">
+                    <h3 class="text-xs text-accent uppercase font-bold mb-2">2. 逻辑归因 (必填)</h3>
+                    <textarea id="tLogic" class="w-full bg-slate-900 border border-slate-600 rounded p-3 text-white text-sm h-24 outline-none resize-none" placeholder="为什么操作？"></textarea>
                 </div>
             </div>
-
             <div class="p-6 border-t border-slate-800 bg-card pb-10">
-                <button onclick="submitTrade()" class="w-full bg-accent hover:bg-blue-600 text-white font-bold py-4 rounded-2xl shadow-lg transition flex items-center justify-center">
-                    <i class="fa-solid fa-paper-plane mr-2"></i> 提交并复盘
-                </button>
+                <button onclick="submitTrade()" class="w-full bg-accent hover:bg-blue-600 text-white font-bold py-4 rounded-2xl shadow-lg transition">提交</button>
             </div>
         </div>
     </div>
 
     <script>
-        // ==========================================
-        // 1. 全量数据初始化 (V1.4 数据回归)
-        // ==========================================
-        
-        // 您的完整持仓列表 (已从CSV恢复)
-        const fullHoldings = [
-            {code: '007339', name: '易方达沪深300', value: 44016.20, pl: 0.19, category: 'cn'},
-            {code: '004742', name: '易方达深证100', value: 49186.49, pl: 0.84, category: 'cn'},
-            {code: '560980', name: '光伏龙头ETF', value: 16445.80, pl: 2.72, category: 'cn'},
-            {code: '159781', name: '科创创业50', value: 14905.80, pl: 3.64, category: 'cn'},
-            {code: '512400', name: '有色ETF', value: 14406.00, pl: 20.02, category: 'cn'},
-            {code: '020712', name: '日经225联接', value: 9801.22, pl: 5.35, category: 'global'},
-            {code: '008764', name: '天弘越南市场', value: 9073.04, pl: -7.50, category: 'global'},
-            {code: '003984', name: '嘉实新能源', value: 8380.55, pl: -1.64, category: 'cn'},
-            {code: '009505', name: '富国上海金', value: 8324.46, pl: 15.24, category: 'cn'},
-            {code: '588290', name: '芯片科创ETF', value: 8003.10, pl: -2.38, category: 'cn'},
-            {code: '025209', name: '永赢半导体', value: 8067.01, pl: -5.10, category: 'cn'},
-            {code: '017436', name: '华宝纳斯达克', value: 6059.19, pl: -3.30, category: 'global'},
-            {code: '159915', name: '创业板ETF', value: 5202.00, pl: 6.32, category: 'cn'},
-            {code: '007455', name: '富国蓝筹QDII', value: 4806.39, pl: 2.33, category: 'global'},
-            {code: '512820', name: '银行股基', value: 4260.00, pl: -1.44, category: 'cn'},
-            {code: '017144', name: '海外新能源', value: 3552.41, pl: 28.40, category: 'global'},
-            {code: '515880', name: '通信ETF', value: 2826.00, pl: 91.70, category: 'cn'},
-            {code: '513200', name: '港股医药ETF', value: 2558.40, pl: -37.99, category: 'global'},
-            {code: '022365', name: '永赢科技智选', value: 1627.04, pl: 8.47, category: 'cn'},
-            {code: '513880', name: '日经225ETF', value: 14711.70, pl: -6.64, category: 'global'}
+        // 核心数据 (包含完整代码和前缀)
+        // 注意：为了调取行情，我为您添加了 'prefix' 字段 (sh/sz/hk/gb_us)
+        const initialHoldings = [
+            {code: '007339', prefix: 'sz', name: '易方达沪深300', value: 44016.20, share: 0, category: 'cn'}, // 场外基金通常无实时行情，需手动
+            {code: '004742', prefix: 'sz', name: '易方达深证100', value: 49186.49, share: 0, category: 'cn'},
+            {code: '560980', prefix: 'sh', name: '光伏龙头ETF', value: 16445.80, share: 23800, category: 'cn'}, 
+            {code: '159781', prefix: 'sz', name: '科创创业50', value: 14905.80, share: 16900, category: 'cn'},
+            {code: '512400', prefix: 'sh', name: '有色ETF', value: 14406.00, share: 8400, category: 'cn'},
+            {code: '020712', prefix: 'of', name: '日经225联接', value: 9801.22, share: 0, category: 'global'},
+            {code: '008764', prefix: 'of', name: '天弘越南市场', value: 9073.04, share: 0, category: 'global'},
+            {code: '003984', prefix: 'of', name: '嘉实新能源', value: 8380.55, share: 0, category: 'cn'},
+            {code: '009505', prefix: 'of', name: '富国上海金', value: 8324.46, share: 0, category: 'cn'},
+            {code: '588290', prefix: 'sh', name: '芯片科创ETF', value: 8003.10, share: 3700, category: 'cn'},
+            {code: '025209', prefix: 'of', name: '永赢半导体', value: 8067.01, share: 0, category: 'cn'},
+            {code: '017436', prefix: 'of', name: '华宝纳斯达克', value: 6059.19, share: 0, category: 'global'},
+            {code: '159915', prefix: 'sz', name: '创业板ETF', value: 5202.00, share: 1700, category: 'cn'},
+            {code: '007455', prefix: 'of', name: '富国蓝筹QDII', value: 4806.39, share: 0, category: 'global'},
+            {code: '512820', prefix: 'sh', name: '银行股基', value: 4260.00, share: 3000, category: 'cn'},
+            {code: '017144', prefix: 'of', name: '海外新能源', value: 3552.41, share: 0, category: 'global'},
+            {code: '515880', prefix: 'sh', name: '通信ETF', value: 2826.00, share: 1000, category: 'cn'},
+            {code: '513200', prefix: 'sh', name: '港股医药ETF', value: 2558.40, share: 2400, category: 'global'},
+            {code: '022365', prefix: 'of', name: '永赢科技智选', value: 1627.04, share: 0, category: 'cn'},
+            {code: '513880', prefix: 'sh', name: '日经225ETF', value: 14711.70, share: 8900, category: 'global'}
         ];
 
-        // 默认配置
         const defaultConfig = {
-            exchangeRate: 7.29,
-            rmbCash: 220000, // 默认缺口
-            usdCash: 18000,
-            transactions: []
+            exchangeRate: 7.29, rmbCash: 220000, usdCash: 18000, transactions: [], holdings: initialHoldings
         };
 
-        // 读取本地存储 (保留用户的交易记录和设置)
-        let appData = JSON.parse(localStorage.getItem('alphaLogV16')) || defaultConfig;
+        let appData = JSON.parse(localStorage.getItem('alphaLogV18')) || defaultConfig;
+        // 兼容性检查
+        if(!appData.holdings || appData.holdings.length < 5) appData.holdings = initialHoldings;
+
         let chartInstance = null;
         let isExpanded = false;
-
-        // ==========================================
-        // 2. 核心渲染逻辑
-        // ==========================================
 
         function init() {
             document.getElementById('exchangeRate').value = appData.exchangeRate;
             document.getElementById('rmbCashInput').value = appData.rmbCash;
             updateDashboard(false);
             renderLogs();
+            
+            // 填充联想
+            const datalist = document.getElementById('stockOptions');
+            datalist.innerHTML = '';
+            appData.holdings.forEach(h => {
+                const opt = document.createElement('option');
+                opt.value = h.code;
+                opt.label = h.name;
+                datalist.appendChild(opt);
+            });
+        }
+
+        // --- 核心：实时行情获取 ---
+        function fetchRealTimeData() {
+            const btn = document.getElementById('refreshBtn');
+            const btnText = document.getElementById('refreshText');
+            btn.classList.add('animate-pulse');
+            btnText.innerText = "同步中...";
+
+            // 1. 构建请求列表
+            // 只请求 ETF/股票 (prefix 为 sh/sz)，场外基金(of)无法通过此接口实时获取净值
+            let queryCodes = [];
+            appData.holdings.forEach(h => {
+                if (h.prefix === 'sh' || h.prefix === 'sz') {
+                    queryCodes.push(h.prefix + h.code);
+                }
+            });
+
+            if (queryCodes.length === 0) {
+                alert("没有可同步行情的场内标的");
+                resetBtn();
+                return;
+            }
+
+            // 2. JSONP 方式请求新浪财经接口
+            const script = document.createElement('script');
+            script.src = `http://hq.sinajs.cn/list=${queryCodes.join(',')}`;
+            
+            script.onload = () => {
+                let updatedCount = 0;
+                appData.holdings.forEach(h => {
+                    if (h.prefix === 'sh' || h.prefix === 'sz') {
+                        const varName = `hq_str_${h.prefix}${h.code}`;
+                        if (window[varName]) {
+                            const elements = window[varName].split(',');
+                            if (elements.length > 3) {
+                                const currentPrice = parseFloat(elements[3]); // 当前价格
+                                if (currentPrice > 0 && h.share > 0) {
+                                    // 自动更新市值
+                                    const oldVal = h.value;
+                                    h.value = currentPrice * h.share;
+                                    // 简单的当日涨跌幅计算 (基于开盘价)
+                                    const openPrice = parseFloat(elements[1]);
+                                    if(openPrice > 0) {
+                                        h.pl = ((currentPrice - openPrice) / openPrice * 100).toFixed(2);
+                                    }
+                                    updatedCount++;
+                                }
+                            }
+                        }
+                    }
+                });
+                
+                // 保存并更新UI
+                saveData();
+                updateDashboard(false);
+                
+                // 反馈
+                const now = new Date();
+                document.getElementById('lastUpdateTime').innerText = `更新于 ${now.getHours()}:${now.getMinutes()}:${now.getSeconds()}`;
+                resetBtn();
+                // alert(`成功更新了 ${updatedCount} 只 ETF/股票的实时价格`);
+            };
+
+            script.onerror = () => {
+                alert("行情接口连接失败，请检查网络或跨域设置");
+                resetBtn();
+            };
+
+            document.body.appendChild(script);
+        }
+
+        function resetBtn() {
+            const btn = document.getElementById('refreshBtn');
+            const btnText = document.getElementById('refreshText');
+            btn.classList.remove('animate-pulse');
+            btnText.innerText = "刷新行情";
         }
 
         function updateDashboard(save = false) {
             const rate = parseFloat(document.getElementById('exchangeRate').value) || 7.28;
             const rmbCash = parseFloat(document.getElementById('rmbCashInput').value) || 0;
-            const usdCash = appData.usdCash;
-            const usdCashInRmb = usdCash * rate;
+            const usdCashInRmb = appData.usdCash * rate;
 
-            // 1. 计算证券总额
-            let sumCN = 0;
-            let sumGlobal = 0;
-            fullHoldings.forEach(item => {
+            let sumCN = 0, sumGlobal = 0;
+            appData.holdings.forEach(item => {
                 if (item.category === 'cn') sumCN += item.value;
                 if (item.category === 'global') sumGlobal += item.value;
             });
 
-            // 2. 总资产
             const totalAsset = sumCN + sumGlobal + rmbCash + usdCashInRmb;
             document.getElementById('totalAssetDisplay').innerText = "¥ " + Math.round(totalAsset).toLocaleString();
 
-            // 3. 更新图表与比例文字
             updateChart(sumCN, sumGlobal, rmbCash + usdCashInRmb);
-
-            // 4. 更新持仓列表
             renderHoldingsList(rate);
 
-            // 5. 保存
             if (save) {
                 appData.exchangeRate = rate;
                 appData.rmbCash = rmbCash;
-                localStorage.setItem('alphaLogV16', JSON.stringify(appData));
+                saveData();
             }
         }
 
@@ -271,11 +361,7 @@
                 chartInstance.data = data;
                 chartInstance.update();
             } else {
-                chartInstance = new Chart(ctx, {
-                    type: 'doughnut',
-                    data: data,
-                    options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } } }
-                });
+                chartInstance = new Chart(ctx, { type: 'doughnut', data: data, options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } } } });
             }
         }
 
@@ -283,11 +369,9 @@
             const container = document.getElementById('holdingsList');
             container.innerHTML = '';
             
-            // 构造全列表 (含USD现金)
-            let allItems = [...fullHoldings];
-            allItems.push({code:'USD', name:'美元储备(购车)', value: appData.usdCash, pl:0, category:'cash', isUsd:true});
+            let allItems = [...appData.holdings];
+            allItems.push({code:'USD', name:'美元储备', value: appData.usdCash, pl:0, category:'cash', isUsd:true});
             
-            // 排序：金额从大到小
             allItems.sort((a,b) => {
                 let valA = a.isUsd ? a.value * rate : a.value;
                 let valB = b.isUsd ? b.value * rate : b.value;
@@ -300,14 +384,13 @@
                 let displayVal = item.value;
                 let symbol = '¥';
                 let subVal = '';
-
                 if (item.isUsd) {
                     symbol = '$';
                     subVal = `≈ ¥${Math.round(item.value * rate).toLocaleString()}`;
                 }
 
-                const plClass = item.pl > 0 ? 'text-danger' : (item.pl < 0 ? 'text-success' : 'text-slate-500');
-                const plSign = item.pl > 0 ? '+' : '';
+                const plClass = parseFloat(item.pl) > 0 ? 'text-danger' : (parseFloat(item.pl) < 0 ? 'text-success' : 'text-slate-500');
+                const plSign = parseFloat(item.pl) > 0 ? '+' : '';
                 
                 let iconClass = 'fa-chart-simple';
                 if(item.category === 'global') iconClass = 'fa-globe';
@@ -325,7 +408,7 @@
                         </div>
                     </div>
                     <div class="text-right">
-                        <div class="font-bold text-white font-mono text-sm">${symbol} ${item.value.toLocaleString()}</div>
+                        <div class="font-bold text-white font-mono text-sm">${symbol} ${Math.round(displayVal).toLocaleString()}</div>
                         ${item.isUsd ? `<div class="text-[10px] text-slate-500">${subVal}</div>` : 
                         `<div class="text-[10px] ${plClass} font-bold">${plSign}${item.pl}%</div>`}
                     </div>
@@ -336,22 +419,20 @@
         }
 
         function toggleHoldings() {
-            const list = document.getElementById('holdingsList');
+            const container = document.getElementById('holdingsListContainer');
             const fade = document.getElementById('listFade');
             const icon = document.getElementById('toggleIcon');
             const text = document.getElementById('toggleText');
 
             if (isExpanded) {
-                list.style.maxHeight = '300px';
-                list.classList.remove('overflow-y-auto');
-                list.classList.add('overflow-hidden');
+                container.style.maxHeight = '280px';
+                container.classList.remove('overflow-y-auto');
                 fade.classList.remove('hidden');
                 icon.classList.remove('rotate-180');
                 text.innerText = "展开全部";
             } else {
-                list.style.maxHeight = '1000px'; // 足够大
-                list.classList.add('overflow-y-auto');
-                list.classList.remove('overflow-hidden');
+                container.style.maxHeight = '2000px'; 
+                container.classList.add('overflow-y-auto');
                 fade.classList.add('hidden');
                 icon.classList.add('rotate-180');
                 text.innerText = "收起";
@@ -359,20 +440,7 @@
             isExpanded = !isExpanded;
         }
 
-        // ==========================================
-        // 3. 交易交互逻辑
-        // ==========================================
-
-        function openTradeDrawer() {
-            document.getElementById('tradeDrawer').classList.remove('hidden');
-            setTimeout(() => document.getElementById('drawerContent').classList.remove('translate-y-full'), 10);
-        }
-
-        function closeTradeDrawer() {
-            document.getElementById('drawerContent').classList.add('translate-y-full');
-            setTimeout(() => document.getElementById('tradeDrawer').classList.add('hidden'), 300);
-        }
-
+        // --- 交易逻辑 ---
         function submitTrade() {
             const code = document.getElementById('tCode').value;
             const type = document.getElementById('tType').value;
@@ -380,26 +448,33 @@
             const logic = document.getElementById('tLogic').value;
             const mood = document.getElementById('tMood').value;
 
-            if (!code || !amount) { alert("请填写完整信息"); return; }
-            if (logic.length < 5) { alert("CIO: 逻辑太短，拒绝归档。"); return; }
+            if (!code || !amount) { alert("请填写完整"); return; }
+            if (logic.length < 5) { alert("逻辑太短"); return; }
 
-            // 资金联动
             if (type === 'buy') appData.rmbCash -= amount;
             else appData.rmbCash += amount;
             
-            // 记录
-            const newTx = {
-                id: Date.now(),
-                date: new Date().toLocaleDateString(),
-                code, type, amount, logic, mood
-            };
-            appData.transactions.unshift(newTx);
+            let target = appData.holdings.find(h => h.code === code);
+            if (target) {
+                if (type === 'buy') target.value += amount;
+                else target.value -= amount;
+                if(target.value < 0) target.value = 0;
+            } else {
+                if (type === 'buy') {
+                    appData.holdings.push({
+                        code: code, prefix: 'sh', name: '新仓-' + code, value: amount, share: 0, pl: 0, category: 'cn'
+                    });
+                }
+            }
+
+            appData.transactions.unshift({
+                id: Date.now(), date: new Date().toLocaleDateString(), code, type, amount, logic, mood
+            });
 
             updateDashboard(true);
             renderLogs();
             closeTradeDrawer();
-
-            // Reset
+            
             document.getElementById('tCode').value = '';
             document.getElementById('tAmount').value = '';
             document.getElementById('tLogic').value = '';
@@ -407,13 +482,15 @@
 
         function renderLogs() {
             const container = document.getElementById('transactionLog');
-            if (appData.transactions.length === 0) return;
+            if (!appData.transactions || appData.transactions.length === 0) {
+                 container.innerHTML = '<div class="text-center py-6 text-slate-600 text-xs bg-slate-800/30 rounded-2xl border border-slate-800 border-dashed">点击右下角 "+" 记录您的第一笔复盘交易</div>';
+                 return;
+            }
             container.innerHTML = '';
             appData.transactions.forEach(tx => {
                 const isBuy = tx.type === 'buy';
                 const color = isBuy ? 'text-danger' : 'text-success';
                 const moodTag = tx.mood === 'fomo' ? 'bg-orange-900 text-orange-400' : 'bg-slate-700 text-slate-400';
-                
                 container.innerHTML += `
                 <div class="bg-card p-4 rounded-2xl border border-slate-800">
                     <div class="flex justify-between mb-2">
@@ -428,6 +505,31 @@
                 </div>`;
             });
         }
+
+        // --- 备份恢复 ---
+        function toggleSettings() { document.getElementById('settingsPanel').classList.toggle('hidden'); }
+        function saveData() { localStorage.setItem('alphaLogV18', JSON.stringify(appData)); }
+        function exportData() {
+            const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(appData));
+            const dl = document.createElement('a');
+            dl.setAttribute("href", dataStr);
+            dl.setAttribute("download", "alphaLog_v18_backup.json");
+            document.body.appendChild(dl);
+            dl.click(); dl.remove();
+        }
+        function importData(input) {
+            const file = input.files[0];
+            if (!file) return;
+            const reader = new FileReader();
+            reader.onload = (e) => {
+                appData = JSON.parse(e.target.result);
+                saveData(); init(); alert("导入成功"); toggleSettings();
+            };
+            reader.readAsText(file);
+        }
+
+        function openTradeDrawer() { document.getElementById('tradeDrawer').classList.remove('hidden'); setTimeout(()=>document.getElementById('drawerContent').classList.remove('translate-y-full'),10); }
+        function closeTradeDrawer() { document.getElementById('drawerContent').classList.add('translate-y-full'); setTimeout(()=>document.getElementById('tradeDrawer').classList.add('hidden'),300); }
 
         window.onload = init;
     </script>
