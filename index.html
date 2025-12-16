@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>AlphaLog V1.8 - 实时行情版</title>
+    <title>AlphaLog V1.8.1 - 修复接口版</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
@@ -28,13 +28,12 @@
 
     <nav class="sticky top-0 z-30 bg-dark/90 backdrop-blur-md border-b border-slate-800 px-4 py-3 flex justify-between items-center shadow-lg">
         <h1 class="font-bold text-xl tracking-tight text-white flex items-center">
-            <i class="fa-solid fa-bolt text-accent mr-2"></i> AlphaLog <span class="text-[10px] ml-2 bg-slate-800 px-2 py-0.5 rounded text-slate-400">Live</span>
+            <i class="fa-solid fa-bolt text-accent mr-2"></i> AlphaLog <span class="text-[10px] ml-2 bg-slate-800 px-2 py-0.5 rounded text-slate-400">Fixed</span>
         </h1>
         <div class="flex items-center gap-3">
             <button onclick="fetchRealTimeData()" id="refreshBtn" class="flex items-center gap-2 bg-emerald-900/50 hover:bg-emerald-800 text-emerald-400 border border-emerald-800 px-3 py-1.5 rounded-full text-xs font-bold transition">
                 <i class="fa-solid fa-rotate"></i> <span id="refreshText">刷新行情</span>
             </button>
-            
             <button onclick="toggleSettings()" class="w-8 h-8 rounded-full bg-slate-800 flex items-center justify-center hover:bg-slate-700 transition">
                 <i class="fa-solid fa-gear text-slate-400"></i>
             </button>
@@ -44,7 +43,7 @@
     <div id="settingsPanel" class="hidden bg-slate-800 border-b border-slate-700 p-4 animate-fade-in-down">
         <div class="max-w-5xl mx-auto flex justify-between items-center">
             <div class="text-sm text-slate-400">
-                <p class="font-bold text-white mb-1">汇率 & 数据</p>
+                <p class="font-bold text-white mb-1">系统设置</p>
                 <div class="flex items-center gap-2">
                     <span>USD汇率:</span>
                     <input type="number" id="exchangeRate" class="bg-slate-900 border border-slate-600 rounded px-2 py-0.5 w-16 text-center" onchange="updateDashboard(true)">
@@ -68,7 +67,7 @@
             <div class="md:col-span-7 bg-gradient-to-br from-slate-800 to-slate-900 p-6 rounded-3xl border border-slate-700 shadow-2xl relative overflow-hidden">
                 <div class="flex justify-between items-start">
                     <p class="text-slate-400 text-xs font-medium uppercase tracking-wider">实时净资产 (RMB)</p>
-                    <span class="text-[10px] text-slate-500" id="lastUpdateTime">未同步</span>
+                    <span class="text-[10px] text-slate-500" id="lastUpdateTime">等待同步...</span>
                 </div>
                 <div class="flex items-baseline mt-2">
                     <h2 class="text-4xl md:text-5xl font-bold text-white font-mono tracking-tighter" id="totalAssetDisplay">---</h2>
@@ -186,10 +185,9 @@
     </div>
 
     <script>
-        // 核心数据 (包含完整代码和前缀)
-        // 注意：为了调取行情，我为您添加了 'prefix' 字段 (sh/sz/hk/gb_us)
+        // 核心数据
         const initialHoldings = [
-            {code: '007339', prefix: 'sz', name: '易方达沪深300', value: 44016.20, share: 0, category: 'cn'}, // 场外基金通常无实时行情，需手动
+            {code: '007339', prefix: 'sz', name: '易方达沪深300', value: 44016.20, share: 0, category: 'cn'},
             {code: '004742', prefix: 'sz', name: '易方达深证100', value: 49186.49, share: 0, category: 'cn'},
             {code: '560980', prefix: 'sh', name: '光伏龙头ETF', value: 16445.80, share: 23800, category: 'cn'}, 
             {code: '159781', prefix: 'sz', name: '科创创业50', value: 14905.80, share: 16900, category: 'cn'},
@@ -216,7 +214,6 @@
         };
 
         let appData = JSON.parse(localStorage.getItem('alphaLogV18')) || defaultConfig;
-        // 兼容性检查
         if(!appData.holdings || appData.holdings.length < 5) appData.holdings = initialHoldings;
 
         let chartInstance = null;
@@ -228,7 +225,6 @@
             updateDashboard(false);
             renderLogs();
             
-            // 填充联想
             const datalist = document.getElementById('stockOptions');
             datalist.innerHTML = '';
             appData.holdings.forEach(h => {
@@ -239,15 +235,13 @@
             });
         }
 
-        // --- 核心：实时行情获取 ---
+        // --- 核心修复：HTTPS 协议 ---
         function fetchRealTimeData() {
             const btn = document.getElementById('refreshBtn');
             const btnText = document.getElementById('refreshText');
             btn.classList.add('animate-pulse');
             btnText.innerText = "同步中...";
 
-            // 1. 构建请求列表
-            // 只请求 ETF/股票 (prefix 为 sh/sz)，场外基金(of)无法通过此接口实时获取净值
             let queryCodes = [];
             appData.holdings.forEach(h => {
                 if (h.prefix === 'sh' || h.prefix === 'sz') {
@@ -256,14 +250,14 @@
             });
 
             if (queryCodes.length === 0) {
-                alert("没有可同步行情的场内标的");
+                alert("没有可同步的场内标的");
                 resetBtn();
                 return;
             }
 
-            // 2. JSONP 方式请求新浪财经接口
+            // 【关键修复】使用 HTTPS
             const script = document.createElement('script');
-            script.src = `http://hq.sinajs.cn/list=${queryCodes.join(',')}`;
+            script.src = `https://hq.sinajs.cn/list=${queryCodes.join(',')}`;
             
             script.onload = () => {
                 let updatedCount = 0;
@@ -273,12 +267,9 @@
                         if (window[varName]) {
                             const elements = window[varName].split(',');
                             if (elements.length > 3) {
-                                const currentPrice = parseFloat(elements[3]); // 当前价格
+                                const currentPrice = parseFloat(elements[3]);
                                 if (currentPrice > 0 && h.share > 0) {
-                                    // 自动更新市值
-                                    const oldVal = h.value;
                                     h.value = currentPrice * h.share;
-                                    // 简单的当日涨跌幅计算 (基于开盘价)
                                     const openPrice = parseFloat(elements[1]);
                                     if(openPrice > 0) {
                                         h.pl = ((currentPrice - openPrice) / openPrice * 100).toFixed(2);
@@ -290,19 +281,18 @@
                     }
                 });
                 
-                // 保存并更新UI
                 saveData();
                 updateDashboard(false);
                 
-                // 反馈
                 const now = new Date();
                 document.getElementById('lastUpdateTime').innerText = `更新于 ${now.getHours()}:${now.getMinutes()}:${now.getSeconds()}`;
                 resetBtn();
-                // alert(`成功更新了 ${updatedCount} 只 ETF/股票的实时价格`);
             };
 
             script.onerror = () => {
-                alert("行情接口连接失败，请检查网络或跨域设置");
+                // 如果HTTPS也失败，可能是网络问题
+                console.error("Sina API HTTPS Error");
+                alert("接口请求失败。请检查网络或是否安装了广告拦截插件");
                 resetBtn();
             };
 
@@ -440,7 +430,6 @@
             isExpanded = !isExpanded;
         }
 
-        // --- 交易逻辑 ---
         function submitTrade() {
             const code = document.getElementById('tCode').value;
             const type = document.getElementById('tType').value;
@@ -506,7 +495,6 @@
             });
         }
 
-        // --- 备份恢复 ---
         function toggleSettings() { document.getElementById('settingsPanel').classList.toggle('hidden'); }
         function saveData() { localStorage.setItem('alphaLogV18', JSON.stringify(appData)); }
         function exportData() {
