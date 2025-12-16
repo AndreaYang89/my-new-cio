@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>AlphaLog V1.4 - 您的资产驾驶舱</title>
+    <title>AlphaLog V1.5 - 交易复盘版</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
@@ -18,182 +18,223 @@
                         accent: '#3b82f6',
                         danger: '#ef4444', 
                         success: '#22c55e',
+                    },
+                    animation: {
+                        'slide-up': 'slideUp 0.3s ease-out forwards',
+                    },
+                    keyframes: {
+                        slideUp: {
+                            '0%': { transform: 'translateY(100%)' },
+                            '100%': { transform: 'translateY(0)' },
+                        }
                     }
                 }
             }
         }
     </script>
 </head>
-<body class="bg-dark text-slate-200 font-sans antialiased min-h-screen pb-20">
+<body class="bg-dark text-slate-200 font-sans antialiased min-h-screen pb-24 relative overflow-x-hidden">
 
-    <nav class="sticky top-0 z-40 bg-dark/90 backdrop-blur-md border-b border-slate-800 px-4 py-3 flex justify-between items-center shadow-lg">
+    <nav class="sticky top-0 z-30 bg-dark/90 backdrop-blur-md border-b border-slate-800 px-4 py-3 flex justify-between items-center">
         <h1 class="font-bold text-xl tracking-tight text-white flex items-center">
-            <i class="fa-solid fa-chart-pie text-accent mr-2"></i> AlphaLog <span class="text-[10px] ml-2 bg-slate-800 px-2 py-0.5 rounded text-slate-400">V1.4 Live</span>
+            <i class="fa-solid fa-brain text-accent mr-2"></i> AlphaLog <span class="text-[10px] ml-2 bg-accent/20 text-accent px-2 py-0.5 rounded">CIO Mode</span>
         </h1>
         <div class="flex items-center bg-slate-800 px-3 py-1.5 rounded-full border border-slate-700">
             <span class="text-xs text-slate-400 mr-2">USD/CNY</span>
-            <input type="number" id="exchangeRate" class="w-12 bg-transparent text-right font-bold text-white text-sm focus:outline-none focus:text-accent transition" onchange="updateDashboard(true)">
+            <input type="number" id="exchangeRate" class="w-12 bg-transparent text-right font-bold text-white text-sm focus:outline-none" onchange="updateDashboard(true)">
         </div>
     </nav>
 
     <div class="max-w-5xl mx-auto p-4 space-y-6">
-
-        <div class="grid grid-cols-1 md:grid-cols-12 gap-6">
-            
-            <div class="md:col-span-7 flex flex-col gap-4">
-                <div class="bg-gradient-to-br from-slate-800 to-slate-900 p-6 rounded-3xl border border-slate-700 shadow-2xl relative overflow-hidden group">
-                    <div class="absolute top-0 right-0 p-6 opacity-5 group-hover:opacity-10 transition">
-                        <i class="fa-solid fa-wallet text-9xl"></i>
-                    </div>
-                    <p class="text-slate-400 text-sm font-medium uppercase tracking-wider flex items-center">
-                        <i class="fa-solid fa-calculator mr-2"></i> 净资产总额 (RMB)
-                    </p>
-                    <h2 class="text-5xl md:text-6xl font-bold text-white mt-4 font-mono tracking-tighter" id="totalAssetDisplay">---</h2>
-                    <p class="text-xs text-slate-500 mt-4">
-                        * 自动合计：证券持仓 + 美元现金(折算) + 人民币存款
-                    </p>
-                </div>
-
-                <div class="bg-slate-800/50 p-4 rounded-2xl border border-slate-700 border-dashed hover:border-slate-500 transition">
-                    <div class="flex justify-between items-center">
-                        <label class="text-sm text-slate-300 flex items-center">
-                            <i class="fa-solid fa-building-columns text-slate-500 mr-2"></i> 银行存款/理财 (补全差额)
-                        </label>
-                        <div class="flex items-center">
-                            <span class="text-slate-500 mr-2">¥</span>
-                            <input type="number" id="rmbCashInput" class="bg-slate-900 border border-slate-600 rounded px-2 py-1 text-right text-white font-mono w-32 focus:border-accent focus:outline-none" placeholder="0" onchange="updateDashboard(true)">
-                        </div>
-                    </div>
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div class="bg-gradient-to-br from-slate-800 to-slate-900 p-5 rounded-3xl border border-slate-700 shadow-xl">
+                <p class="text-slate-400 text-xs font-medium uppercase">净资产总额 (RMB)</p>
+                <h2 class="text-4xl font-bold text-white mt-2 font-mono" id="totalAssetDisplay">---</h2>
+                <div class="mt-4 flex gap-2">
+                    <span class="text-[10px] bg-emerald-900/50 text-emerald-400 px-2 py-1 rounded border border-emerald-800">
+                        <i class="fa-solid fa-sack-dollar mr-1"></i>可用现金: <span id="cashDisplay">--</span>
+                    </span>
                 </div>
             </div>
-
-            <div class="md:col-span-5 bg-slate-800 p-4 rounded-3xl border border-slate-700 shadow-xl flex flex-col items-center justify-center relative min-h-[300px]">
-                <h3 class="absolute top-4 left-4 text-xs font-bold text-slate-500 uppercase">资产分布</h3>
-                <div class="w-64 h-64 relative">
+            
+            <div class="bg-slate-800 p-4 rounded-3xl border border-slate-700 shadow-xl flex items-center justify-between relative h-40">
+                <div class="ml-4">
+                    <h3 class="text-sm font-bold text-slate-300 mb-1">仓位监控</h3>
+                    <p class="text-xs text-slate-500">权益 vs 现金</p>
+                    <p class="text-xl font-bold text-white mt-2" id="equityRatio">--%</p>
+                </div>
+                <div class="w-32 h-32 mr-4">
                     <canvas id="assetChart"></canvas>
-                    <div class="absolute inset-0 flex items-center justify-center flex-col pointer-events-none">
-                        <span class="text-xs text-slate-500">USD Ratio</span>
-                        <span class="text-xl font-bold text-white" id="usdRatioText">--%</span>
-                    </div>
                 </div>
             </div>
         </div>
 
-        <div class="bg-slate-900/50 rounded-3xl p-1">
-            <div class="flex space-x-1 p-1 mb-2">
-                <button onclick="switchTab('all')" class="tab-btn active flex-1 py-2 rounded-xl text-sm font-bold transition text-center" data-tab="all">全部</button>
-                <button onclick="switchTab('cn')" class="tab-btn flex-1 py-2 rounded-xl text-sm font-bold transition text-center" data-tab="cn">🇨🇳 A股</button>
-                <button onclick="switchTab('global')" class="tab-btn flex-1 py-2 rounded-xl text-sm font-bold transition text-center" data-tab="global">🌍 海外</button>
-                <button onclick="switchTab('cash')" class="tab-btn flex-1 py-2 rounded-xl text-sm font-bold transition text-center" data-tab="cash">💵 现金</button>
+        <div>
+            <div class="flex justify-between items-end mb-3 px-1">
+                <h3 class="font-bold text-white text-lg"><i class="fa-solid fa-clock-rotate-left mr-2 text-accent"></i>交易复盘日志</h3>
+                <span class="text-xs text-slate-500">CIO 审计中...</span>
+            </div>
+            <div id="transactionLog" class="space-y-3">
+                <div class="text-center py-10 text-slate-600 text-sm bg-slate-800/30 rounded-2xl border border-slate-800 border-dashed">
+                    暂无新交易记录，点击右下角 "+" 开始复盘
+                </div>
+            </div>
+        </div>
+
+        <div class="pt-4 border-t border-slate-800">
+             <button onclick="document.getElementById('holdingsArea').classList.toggle('hidden')" class="flex items-center text-sm text-slate-400 hover:text-white transition w-full justify-between">
+                <span>查看当前持仓快照</span>
+                <i class="fa-solid fa-chevron-down"></i>
+             </button>
+             <div id="holdingsArea" class="hidden mt-4 grid grid-cols-1 md:grid-cols-2 gap-3">
+                 </div>
+        </div>
+    </div>
+
+    <button onclick="openTradeDrawer()" class="fixed bottom-6 right-6 w-14 h-14 bg-accent hover:bg-blue-600 rounded-full shadow-2xl shadow-blue-500/30 flex items-center justify-center text-white text-2xl z-40 transition-transform hover:scale-110 active:scale-95">
+        <i class="fa-solid fa-plus"></i>
+    </button>
+
+    <div id="tradeDrawer" class="fixed inset-0 z-50 hidden">
+        <div class="absolute inset-0 bg-black/80 backdrop-blur-sm transition-opacity" onclick="closeTradeDrawer()"></div>
+        
+        <div class="absolute bottom-0 left-0 right-0 bg-card rounded-t-3xl border-t border-slate-600 shadow-2xl h-[85vh] transform transition-transform duration-300 translate-y-full flex flex-col" id="drawerContent">
+            
+            <div class="w-full flex justify-center pt-3 pb-1" onclick="closeTradeDrawer()">
+                <div class="w-12 h-1.5 bg-slate-600 rounded-full"></div>
             </div>
 
-            <div id="portfolioList" class="space-y-3 px-2 pb-2">
+            <div class="px-6 py-4 border-b border-slate-700 flex justify-between items-center">
+                <h2 class="text-xl font-bold text-white">交易决策实验室</h2>
+                <button onclick="closeTradeDrawer()" class="text-slate-400 hover:text-white bg-slate-800 px-3 py-1 rounded-full text-xs">取消</button>
+            </div>
+
+            <div class="flex-1 overflow-y-auto p-6 space-y-6">
+                
+                <div class="bg-slate-800/50 p-4 rounded-xl border border-slate-700">
+                    <h3 class="text-xs text-slate-400 uppercase font-bold mb-3">1. 交易指令</h3>
+                    <div class="grid grid-cols-2 gap-4 mb-3">
+                        <div>
+                            <label class="text-xs text-slate-500 block mb-1">代码/名称</label>
+                            <input type="text" id="tCode" placeholder="如 NVDA" class="w-full bg-slate-900 border border-slate-600 rounded p-2 text-white text-sm outline-none focus:border-accent">
+                        </div>
+                        <div>
+                            <label class="text-xs text-slate-500 block mb-1">操作方向</label>
+                            <select id="tType" class="w-full bg-slate-900 border border-slate-600 rounded p-2 text-white text-sm outline-none focus:border-accent">
+                                <option value="buy">买入 (消耗现金)</option>
+                                <option value="sell">卖出 (回笼现金)</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="grid grid-cols-2 gap-4">
+                        <div>
+                            <label class="text-xs text-slate-500 block mb-1">成交总额 (CNY)</label>
+                            <input type="number" id="tAmount" placeholder="0" class="w-full bg-slate-900 border border-slate-600 rounded p-2 text-white text-sm outline-none focus:border-accent font-mono font-bold">
+                        </div>
+                        <div>
+                            <label class="text-xs text-slate-500 block mb-1">当前情绪</label>
+                            <select id="tMood" class="w-full bg-slate-900 border border-slate-600 rounded p-2 text-white text-sm outline-none focus:border-accent">
+                                <option value="calm">冷静/按计划</option>
+                                <option value="fomo">急躁/怕踏空 (FOMO)</option>
+                                <option value="panic">恐慌/止损</option>
+                                <option value="bored">手痒/想操作</option>
+                            </select>
+                        </div>
+                    </div>
                 </div>
+
+                <div class="bg-slate-800/50 p-4 rounded-xl border border-slate-700 relative overflow-hidden">
+                    <div class="absolute top-0 right-0 p-2 opacity-10"><i class="fa-solid fa-gavel text-6xl"></i></div>
+                    <h3 class="text-xs text-accent uppercase font-bold mb-2">2. CIO 逻辑审查 (必填)</h3>
+                    <p class="text-[10px] text-slate-400 mb-2">请阐述你的买卖理由。如果理由少于 10 个字，将被判定为“无效交易”。</p>
+                    <textarea id="tLogic" class="w-full bg-slate-900 border border-slate-600 rounded p-3 text-white text-sm h-24 outline-none focus:border-accent resize-none" placeholder="例如：回踩 20 日均线企稳，且行业基本面改善..."></textarea>
+                </div>
+
+                <div id="cioPreview" class="hidden text-xs text-slate-400 bg-black/20 p-3 rounded-lg border border-slate-800">
+                    <i class="fa-solid fa-robot mr-1"></i> <span id="cioText">等待输入...</span>
+                </div>
+
+            </div>
+
+            <div class="p-6 border-t border-slate-800 bg-card pb-10">
+                <button onclick="submitTrade()" class="w-full bg-gradient-to-r from-blue-600 to-blue-500 hover:from-blue-500 hover:to-blue-400 text-white font-bold py-4 rounded-2xl shadow-lg shadow-blue-900/40 text-lg transition transform active:scale-95 flex items-center justify-center">
+                    <i class="fa-solid fa-paper-plane mr-2"></i> 提交并归档
+                </button>
+            </div>
         </div>
     </div>
 
     <script>
         // ==========================================
-        // 1. 数据初始化 (基于您的 CSV 准确数据)
+        // 1. 数据中心 (Data Center)
         // ==========================================
-        
-        // 默认配置
         const defaultConfig = {
             exchangeRate: 7.29,
-            rmbCash: 220000, // 预估缺口，您可以修改
-            usdCash: 18000   // 固定的美元储备
+            cashCNY: 220000,
+            cashUSD: 18000,
+            transactions: [] // 交易记录表
         };
 
-        // 从 LocalStorage 读取用户修改过的数据，如果没有则使用默认
-        const savedConfig = JSON.parse(localStorage.getItem('alphaLogConfig')) || defaultConfig;
-
-        // 证券持仓 (来自 Excel 解析，精确到小数点)
-        // 自动打标：category (cn/global)
-        const securities = [
+        // 读取或初始化
+        let appData = JSON.parse(localStorage.getItem('alphaLogV15')) || defaultConfig;
+        
+        // 初始持仓 (可以被交易修改，这里简化处理，只做展示)
+        // 在真实开发中，这里应该根据 transactions 动态计算，V1.5 原型暂用静态列表+动态资金演示
+        const staticHoldings = [
             {code: '007339', name: '易方达沪深300', value: 44016.20, pl: 0.19, category: 'cn'},
-            {code: '004742', name: '易方达深证100', value: 49186.49, pl: 0.84, category: 'cn'},
-            {code: '560980', name: '光伏龙头ETF', value: 16445.80, pl: 2.72, category: 'cn'},
-            {code: '159781', name: '科创创业50', value: 14905.80, pl: 3.64, category: 'cn'},
-            {code: '512400', name: '有色ETF', value: 14406.00, pl: 20.02, category: 'cn'},
-            {code: '020712', name: '日经225联接', value: 9801.22, pl: 5.35, category: 'global'},
-            {code: '008764', name: '天弘越南市场', value: 9073.04, pl: -7.50, category: 'global'},
-            {code: '003984', name: '嘉实新能源', value: 8380.55, pl: -1.64, category: 'cn'},
-            {code: '009505', name: '富国上海金', value: 8324.46, pl: 15.24, category: 'cn'}, // 黄金归为CNY定价资产
-            {code: '588290', name: '芯片科创ETF', value: 8003.10, pl: -2.38, category: 'cn'},
-            {code: '025209', name: '永赢半导体', value: 8067.01, pl: -5.10, category: 'cn'},
-            {code: '017436', name: '华宝纳斯达克', value: 6059.19, pl: -3.30, category: 'global'},
-            {code: '159915', name: '创业板ETF', value: 5202.00, pl: 6.32, category: 'cn'},
-            {code: '007455', name: '富国蓝筹QDII', value: 4806.39, pl: 2.33, category: 'global'},
-            {code: '512820', name: '银行股基', value: 4260.00, pl: -1.44, category: 'cn'},
-            {code: '017144', name: '海外新能源', value: 3552.41, pl: 28.40, category: 'global'},
+            {code: '513200', name: '港股医药ETF', value: 2558.40, pl: -37.99, category: 'global'},
             {code: '515880', name: '通信ETF', value: 2826.00, pl: 91.70, category: 'cn'},
-            {code: '513200', name: '港股医药ETF', value: 2558.40, pl: -37.99, category: 'global'}, // 痛点
-            {code: '022365', name: '永赢科技智选', value: 1627.04, pl: 8.47, category: 'cn'},
-            {code: '513880', name: '日经225ETF', value: 14711.70, pl: -6.64, category: 'global'}
+            {code: 'USD', name: '美元储备', value: 18000, pl: 0, category: 'cash', isUsd: true}
         ];
 
         let chartInstance = null;
-        let currentTab = 'all';
 
         // ==========================================
-        // 2. 核心计算与渲染逻辑
+        // 2. 核心功能函数
         // ==========================================
-        function updateDashboard(save = false) {
-            // 获取输入值
-            const rate = parseFloat(document.getElementById('exchangeRate').value) || 7.28;
-            const rmbCash = parseFloat(document.getElementById('rmbCashInput').value) || 0;
-            const usdCash = savedConfig.usdCash;
 
-            // 1. 计算各板块总额
-            let sumSecuritiesCN = 0;
-            let sumSecuritiesGlobal = 0;
-
-            securities.forEach(item => {
-                if (item.category === 'cn') sumSecuritiesCN += item.value;
-                if (item.category === 'global') sumSecuritiesGlobal += item.value;
-            });
-
-            // 总资产 = 证券(CN) + 证券(Global) + RMB现金 + (USD现金 * 汇率)
-            const usdCashInRmb = usdCash * rate;
-            const totalAsset = sumSecuritiesCN + sumSecuritiesGlobal + rmbCash + usdCashInRmb;
-
-            // 2. 更新 DOM
-            document.getElementById('totalAssetDisplay').innerText = "¥ " + totalAsset.toLocaleString('zh-CN', { maximumFractionDigits: 0 });
-            
-            // 3. 更新图表 (甜甜圈)
-            updateChart(sumSecuritiesCN + rmbCash, sumSecuritiesGlobal, usdCashInRmb);
-
-            // 4. 保存配置
-            if (save) {
-                localStorage.setItem('alphaLogConfig', JSON.stringify({
-                    exchangeRate: rate,
-                    rmbCash: rmbCash,
-                    usdCash: usdCash
-                }));
-            }
-
-            // 5. 渲染列表
-            renderList(rate);
+        function init() {
+            document.getElementById('exchangeRate').value = appData.exchangeRate;
+            renderDashboard();
+            renderLogs();
+            renderHoldings();
         }
 
-        function updateChart(cnVal, globalVal, usdVal) {
-            const ctx = document.getElementById('assetChart').getContext('2d');
+        function renderDashboard() {
+            const rate = parseFloat(document.getElementById('exchangeRate').value);
             
+            // 简单计算：静态持仓 + 动态现金
+            let securitiesVal = staticHoldings.reduce((sum, item) => {
+                return sum + (item.isUsd ? item.value * rate : item.value);
+            }, 0);
+
+            // 加上动态资金 (appData.cashCNY 可能会因为交易而变动)
+            const totalCashRMB = appData.cashCNY; // 简化：假设交易只动用人民币现金池
+            const totalAsset = securitiesVal + totalCashRMB;
+
+            document.getElementById('totalAssetDisplay').innerText = "¥ " + Math.round(totalAsset).toLocaleString();
+            document.getElementById('cashDisplay').innerText = "¥ " + Math.round(totalCashRMB).toLocaleString();
+
+            // 更新图表
+            updateChart(securitiesVal - (18000*rate), 18000*rate, totalCashRMB);
+        }
+
+        function updateChart(equityVal, usdVal, rmbCashVal) {
+            const ctx = document.getElementById('assetChart').getContext('2d');
+            const total = equityVal + usdVal + rmbCashVal;
+            const equityRatio = Math.round(((equityVal + usdVal) / total) * 100);
+            
+            document.getElementById('equityRatio').innerText = equityRatio + "%";
+
             const data = {
-                labels: ['A股/CNY', '海外权益', '美元现金'],
+                labels: ['权益', '现金'],
                 datasets: [{
-                    data: [cnVal, globalVal, usdVal],
-                    backgroundColor: ['#3b82f6', '#a855f7', '#10b981'], // Blue, Purple, Green
+                    data: [equityVal + usdVal, rmbCashVal],
+                    backgroundColor: ['#3b82f6', '#334155'],
                     borderWidth: 0,
-                    hoverOffset: 4
+                    cutout: '75%'
                 }]
             };
-
-            // 计算美元占比
-            const total = cnVal + globalVal + usdVal;
-            const usdRatio = ((usdVal / total) * 100).toFixed(1);
-            document.getElementById('usdRatioText').innerText = usdRatio + "%";
-            document.getElementById('usdRatioText').className = "text-xl font-bold " + (usdRatio > 20 ? "text-emerald-400" : "text-white");
 
             if (chartInstance) {
                 chartInstance.data = data;
@@ -202,87 +243,139 @@
                 chartInstance = new Chart(ctx, {
                     type: 'doughnut',
                     data: data,
-                    options: {
-                        cutout: '70%',
-                        responsive: true,
-                        maintainAspectRatio: false,
-                        plugins: {
-                            legend: {
-                                position: 'bottom',
-                                labels: { color: '#94a3b8', boxWidth: 10, padding: 20 }
-                            },
-                            tooltip: {
-                                callbacks: {
-                                    label: function(context) {
-                                        let label = context.label || '';
-                                        if (label) { label += ': '; }
-                                        label += '¥' + context.raw.toLocaleString();
-                                        return label;
-                                    }
-                                }
-                            }
-                        }
-                    }
+                    options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } } }
                 });
             }
         }
 
-        function renderList(rate) {
-            const container = document.getElementById('portfolioList');
-            container.innerHTML = '';
+        // ==========================================
+        // 3. 交易实验室逻辑 (核心)
+        // ==========================================
 
-            // 构造全量列表 (把现金也塞进去方便展示)
-            let allItems = [...securities];
-            
-            // 只有当 Tab 是 Cash 或 All 时才显示现金
-            const usdCashItem = { name: "美元储备 (购车)", code: "USD", value: savedConfig.usdCash, pl: 0, category: 'cash', isCash: true };
-            const rmbCashItem = { name: "银行存款/理财", code: "CNY", value: parseFloat(document.getElementById('rmbCashInput').value)||0, pl: 0, category: 'cash', isCash: true };
-            
-            allItems.push(usdCashItem);
-            allItems.push(rmbCashItem);
+        function openTradeDrawer() {
+            const drawer = document.getElementById('tradeDrawer');
+            const content = document.getElementById('drawerContent');
+            drawer.classList.remove('hidden');
+            // 简单的动画延迟
+            setTimeout(() => {
+                content.classList.remove('translate-y-full');
+            }, 10);
+        }
 
-            // 过滤
-            if (currentTab !== 'all') {
-                allItems = allItems.filter(i => i.category === currentTab);
+        function closeTradeDrawer() {
+            const drawer = document.getElementById('tradeDrawer');
+            const content = document.getElementById('drawerContent');
+            content.classList.add('translate-y-full');
+            setTimeout(() => {
+                drawer.classList.add('hidden');
+            }, 300);
+        }
+
+        function submitTrade() {
+            const code = document.getElementById('tCode').value;
+            const type = document.getElementById('tType').value;
+            const amount = parseFloat(document.getElementById('tAmount').value);
+            const logic = document.getElementById('tLogic').value;
+            const mood = document.getElementById('tMood').value;
+
+            // 1. 基础校验
+            if (!code || !amount) {
+                alert("请补全代码和金额");
+                return;
             }
 
-            // 排序 (金额从大到小)
-            allItems.sort((a, b) => b.value - a.value);
-
-            allItems.forEach(item => {
-                if(item.value === 0 && !item.isCash) return; // 隐藏0资产
-
-                let displayVal = item.value;
-                let symbol = '¥';
-                
-                // 特殊处理美元展示
-                if (item.code === 'USD') {
-                    symbol = '$'; // 显示原币
-                    // 排序用RMB算
+            // 2. 灵魂拷问校验 (CIO 逻辑)
+            if (logic.length < 10) {
+                alert("🛑 CIO 驳回：\n您的交易逻辑过于简单！\n请详细阐述为什么操作，否则视为赌博。");
+                return;
+            }
+            if (mood === 'fomo' || mood === 'bored') {
+                if(!confirm("⚠️ CIO 风险警报：\n系统检测到您当前情绪为 [急躁/无聊]。\n这种状态下交易胜率极低。确认要强行操作吗？")) {
+                    return;
                 }
+            }
 
-                const plClass = item.pl > 0 ? 'text-danger' : (item.pl < 0 ? 'text-success' : 'text-slate-500');
-                const plBg = item.pl > 0 ? 'bg-danger/10' : (item.pl < 0 ? 'bg-success/10' : 'bg-slate-800');
-                const plSign = item.pl > 0 ? '+' : '';
+            // 3. 执行资金变动
+            if (type === 'buy') {
+                appData.cashCNY -= amount;
+            } else {
+                appData.cashCNY += amount;
+            }
+
+            // 4. 生成 AI 点评 (模拟)
+            let aiComment = "";
+            if (logic.includes("均线") || logic.includes("支撑")) {
+                aiComment = "技术面逻辑清晰，属于右侧交易。";
+            } else if (logic.includes("跌太多") || logic.includes("抄底")) {
+                aiComment = "⚠️ 警告：左侧抄底风险较大，请严格设置止损。";
+            } else {
+                aiComment = "逻辑已归档，建议后续重点复盘此笔交易。";
+            }
+            
+            if (mood === 'calm') aiComment += " 情绪控制良好。";
+
+            // 5. 记录流水
+            const newTx = {
+                id: Date.now(),
+                date: new Date().toLocaleDateString(),
+                code: code,
+                type: type,
+                amount: amount,
+                logic: logic,
+                mood: mood,
+                aiComment: aiComment
+            };
+            appData.transactions.unshift(newTx);
+
+            // 6. 保存并刷新
+            localStorage.setItem('alphaLogV15', JSON.stringify(appData));
+            
+            // 7. UI 反馈
+            closeTradeDrawer();
+            renderDashboard();
+            renderLogs();
+            
+            // 清空表单
+            document.getElementById('tCode').value = '';
+            document.getElementById('tAmount').value = '';
+            document.getElementById('tLogic').value = '';
+        }
+
+        function renderLogs() {
+            const container = document.getElementById('transactionLog');
+            if (appData.transactions.length === 0) return;
+            
+            container.innerHTML = '';
+            appData.transactions.forEach(tx => {
+                const isBuy = tx.type === 'buy';
+                const color = isBuy ? 'text-danger' : 'text-success';
+                const icon = isBuy ? 'fa-arrow-trend-up' : 'fa-arrow-trend-down';
+                const moodBadge = tx.mood === 'calm' ? 'bg-slate-700 text-slate-300' : 'bg-orange-900/50 text-orange-400 border border-orange-800';
                 
-                let iconClass = 'fa-chart-line';
-                if(item.category === 'cash') iconClass = 'fa-sack-dollar';
-                if(item.category === 'global') iconClass = 'fa-globe';
-
                 const html = `
-                <div class="bg-card p-4 rounded-2xl border border-slate-800 flex justify-between items-center group hover:bg-slate-800 transition">
-                    <div class="flex items-center gap-3">
-                        <div class="w-10 h-10 rounded-full ${plBg} flex items-center justify-center text-lg">
-                            <i class="fa-solid ${iconClass} ${plClass}"></i>
+                <div class="bg-card p-4 rounded-2xl border border-slate-800 hover:border-slate-600 transition">
+                    <div class="flex justify-between items-start mb-2">
+                        <div class="flex items-center gap-2">
+                            <span class="w-8 h-8 rounded-full bg-slate-800 flex items-center justify-center border border-slate-700">
+                                <i class="fa-solid ${icon} ${color} text-xs"></i>
+                            </span>
+                            <div>
+                                <span class="font-bold text-white text-sm">${tx.code}</span>
+                                <span class="text-xs text-slate-500 ml-1">${tx.date}</span>
+                            </div>
                         </div>
-                        <div>
-                            <div class="font-bold text-white text-sm">${item.name}</div>
-                            <div class="text-[10px] text-slate-500 bg-slate-900 px-1.5 py-0.5 rounded inline-block font-mono mt-1">${item.code}</div>
+                        <div class="text-right">
+                            <div class="font-bold ${color} font-mono">${isBuy?'-':'+'}¥${tx.amount.toLocaleString()}</div>
+                            <span class="text-[10px] px-1.5 rounded ${moodBadge}">${tx.mood.toUpperCase()}</span>
                         </div>
                     </div>
-                    <div class="text-right">
-                        <div class="font-bold text-white font-mono">${symbol} ${item.value.toLocaleString()}</div>
-                        ${!item.isCash ? `<div class="text-xs ${plClass} font-bold mt-1">${plSign}${item.pl}%</div>` : ''}
+                    
+                    <div class="bg-slate-900/50 p-3 rounded-xl border border-slate-800/50">
+                        <p class="text-xs text-slate-300 italic mb-2">"${tx.logic}"</p>
+                        <div class="flex items-start gap-1.5 border-t border-slate-800 pt-2 mt-2">
+                            <i class="fa-solid fa-robot text-accent text-xs mt-0.5"></i>
+                            <p class="text-[10px] text-accent font-bold">${tx.aiComment}</p>
+                        </div>
                     </div>
                 </div>
                 `;
@@ -290,26 +383,35 @@
             });
         }
 
-        function switchTab(tab) {
-            currentTab = tab;
-            // 更新按钮样式
-            document.querySelectorAll('.tab-btn').forEach(btn => {
-                if(btn.dataset.tab === tab) {
-                    btn.className = 'tab-btn active flex-1 py-2 rounded-xl text-sm font-bold transition text-center bg-accent text-white shadow-lg shadow-blue-900/50';
-                } else {
-                    btn.className = 'tab-btn flex-1 py-2 rounded-xl text-sm font-bold transition text-center text-slate-400 hover:text-white hover:bg-slate-800';
-                }
+        function renderHoldings() {
+            const container = document.getElementById('holdingsArea');
+            let html = '';
+            staticHoldings.forEach(item => {
+                html += `
+                <div class="bg-slate-800 p-3 rounded-xl flex justify-between items-center">
+                    <div>
+                        <div class="text-sm font-bold text-white">${item.name}</div>
+                        <div class="text-[10px] text-slate-500">${item.code}</div>
+                    </div>
+                    <div class="text-right">
+                        <div class="text-sm font-mono text-white">¥${item.value.toLocaleString()}</div>
+                        <div class="text-[10px] ${item.pl>=0?'text-danger':'text-success'}">${item.pl}%</div>
+                    </div>
+                </div>`;
             });
-            renderList(parseFloat(document.getElementById('exchangeRate').value));
+            container.innerHTML = html;
         }
 
-        // 初始化
-        window.onload = function() {
-            document.getElementById('exchangeRate').value = savedConfig.exchangeRate;
-            document.getElementById('rmbCashInput').value = savedConfig.rmbCash;
-            updateDashboard(false);
-            switchTab('all');
+        function updateDashboard(save) {
+            if(save) {
+                appData.exchangeRate = parseFloat(document.getElementById('exchangeRate').value);
+                localStorage.setItem('alphaLogV15', JSON.stringify(appData));
+            }
+            renderDashboard();
         }
+
+        // 启动
+        window.onload = init;
 
     </script>
 </body>
