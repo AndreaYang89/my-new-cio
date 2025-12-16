@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>AlphaLog V1.2 - 实盘驾驶舱</title>
+    <title>AlphaLog V1.3 - 分组管理版</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
     <script>
@@ -16,239 +16,342 @@
                         card: '#1e293b',
                         accent: '#3b82f6',
                         danger: '#ef4444', 
-                        success: '#22c55e', // 绿涨
-                        warning: '#f59e0b',
+                        success: '#22c55e',
                     }
                 }
             }
         }
     </script>
+    <style>
+        /* 隐藏滚动条但保持滚动功能 */
+        .no-scrollbar::-webkit-scrollbar { display: none; }
+        .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+    </style>
 </head>
-<body class="bg-dark text-slate-200 font-sans antialiased min-h-screen p-4 md:p-8">
+<body class="bg-dark text-slate-200 font-sans antialiased min-h-screen pb-20">
 
-    <nav class="flex justify-between items-center mb-6">
-        <h1 class="text-2xl font-bold text-white flex items-center">
-            <i class="fa-solid fa-layer-group text-accent mr-2"></i> 
-            AlphaLog <span class="ml-2 text-xs bg-accent/20 text-accent px-2 py-0.5 rounded">实盘数据版</span>
-        </h1>
-        <div class="flex items-center space-x-3 text-sm">
-            <div class="bg-card px-3 py-1 rounded-full border border-slate-700">
-                <span class="text-slate-400">USD/CNY:</span>
-                <input type="number" id="exchangeRate" value="7.28" class="w-14 bg-transparent text-right font-bold text-white focus:outline-none" onchange="updateDashboard()">
+    <nav class="sticky top-0 z-40 bg-dark/80 backdrop-blur-md border-b border-slate-800 px-4 py-3 flex justify-between items-center">
+        <div class="flex items-center">
+            <div class="w-8 h-8 bg-accent/20 rounded-lg flex items-center justify-center mr-3">
+                <i class="fa-solid fa-layer-group text-accent"></i>
             </div>
+            <h1 class="font-bold text-lg tracking-tight text-white">AlphaLog</h1>
+        </div>
+        
+        <div class="flex items-center space-x-3">
+            <div class="hidden md:flex items-center bg-slate-800 px-3 py-1 rounded-full border border-slate-700">
+                <span class="text-xs text-slate-400 mr-2">USD</span>
+                <input type="number" id="exchangeRate" value="7.28" class="w-10 bg-transparent text-right font-bold text-white text-xs focus:outline-none" onchange="updateDashboard()">
+            </div>
+            
+            <button onclick="openModal()" class="bg-accent hover:bg-blue-600 text-white px-4 py-1.5 rounded-full text-sm font-bold shadow-lg shadow-blue-900/20 transition flex items-center">
+                <i class="fa-solid fa-pen-to-square mr-2"></i> 记一笔
+            </button>
         </div>
     </nav>
 
-    <div class="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
-        <div class="bg-slate-800 p-5 rounded-xl border-l-4 border-accent shadow-lg">
-            <p class="text-slate-400 text-xs uppercase">总资产 (RMB)</p>
-            <h2 class="text-3xl font-bold text-white mt-1 font-mono" id="totalAsset">---</h2>
-            <p class="text-xs text-slate-500 mt-2">含 A股/港美股QDII/美元现金</p>
+    <div class="max-w-4xl mx-auto p-4 space-y-6">
+
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div class="bg-gradient-to-br from-slate-800 to-slate-900 p-5 rounded-2xl border border-slate-700 shadow-xl">
+                <p class="text-slate-400 text-xs font-medium uppercase tracking-wider">净资产总额 (CNY Estimate)</p>
+                <div class="flex justify-between items-end mt-2">
+                    <h2 class="text-3xl font-bold text-white font-mono" id="totalAsset">---</h2>
+                    <span class="text-xs text-emerald-400 bg-emerald-900/30 px-2 py-1 rounded">+12.4% YTD</span>
+                </div>
+            </div>
+
+            <div class="bg-slate-800 p-5 rounded-2xl border border-slate-700 relative overflow-hidden group">
+                <div class="absolute -right-4 -top-4 text-slate-700/20 text-9xl group-hover:text-slate-700/30 transition">
+                    <i class="fa-solid fa-sack-dollar"></i>
+                </div>
+                <div class="relative z-10">
+                    <div class="flex justify-between items-center mb-2">
+                        <p class="text-slate-400 text-xs uppercase">美元战略储备 (购车)</p>
+                        <span class="text-[10px] bg-slate-700 text-slate-300 px-1.5 py-0.5 rounded">USD</span>
+                    </div>
+                    <div class="flex items-baseline space-x-2">
+                        <span class="text-2xl font-bold text-white font-mono">$18,000</span>
+                        <span class="text-xs text-slate-500" id="usdCnyVal">≈ ¥---</span>
+                    </div>
+                    <div class="w-full bg-slate-700 h-1.5 rounded-full mt-3">
+                        <div class="bg-emerald-500 h-1.5 rounded-full transition-all duration-1000" id="carProgress" style="width: 0%"></div>
+                    </div>
+                    <p class="text-[10px] text-slate-500 mt-1 flex justify-between">
+                        <span>当前汇率 7.28</span>
+                        <span>目标进度 <span id="carPercent">0%</span></span>
+                    </p>
+                </div>
+            </div>
         </div>
 
-        <div class="bg-slate-800 p-5 rounded-xl border-l-4 border-emerald-500 shadow-lg relative overflow-hidden">
-            <i class="fa-solid fa-car absolute right-2 bottom-2 text-6xl text-emerald-500/10"></i>
-            <p class="text-slate-400 text-xs uppercase">购车储备 (USD Cash)</p>
-            <h2 class="text-2xl font-bold text-emerald-400 mt-1 font-mono">$18,000</h2>
-            <p class="text-xs text-slate-400 mt-1" id="usdToCnyDisplay">≈ ¥ ---</p>
-            <div class="mt-2 w-full bg-slate-700 h-1.5 rounded-full">
-                <div class="bg-emerald-500 h-1.5 rounded-full" id="carProgress" style="width: 0%"></div>
-            </div>
-            <p class="text-[10px] text-slate-500 mt-1">目标: 30万 (进度 <span id="carPercent">0%</span>)</p>
+        <div class="flex space-x-1 bg-slate-800/50 p-1 rounded-xl overflow-x-auto no-scrollbar">
+            <button onclick="switchTab('all')" class="tab-btn active flex-1 text-sm py-2 px-4 rounded-lg font-medium transition text-center whitespace-nowrap" data-tab="all">
+                全部持仓
+            </button>
+            <button onclick="switchTab('cn')" class="tab-btn flex-1 text-sm py-2 px-4 rounded-lg font-medium transition text-center text-slate-400 hover:text-white whitespace-nowrap" data-tab="cn">
+                🇨🇳 A股核心
+            </button>
+            <button onclick="switchTab('global')" class="tab-btn flex-1 text-sm py-2 px-4 rounded-lg font-medium transition text-center text-slate-400 hover:text-white whitespace-nowrap" data-tab="global">
+                🌍 QDII/港美
+            </button>
+            <button onclick="switchTab('cash')" class="tab-btn flex-1 text-sm py-2 px-4 rounded-lg font-medium transition text-center text-slate-400 hover:text-white whitespace-nowrap" data-tab="cash">
+                💵 现金
+            </button>
         </div>
 
-        <div class="bg-slate-800 p-5 rounded-xl border-l-4 border-purple-500 shadow-lg">
-            <p class="text-slate-400 text-xs uppercase">第一大重仓</p>
-            <h2 class="text-xl font-bold text-white mt-1 truncate">易方达深证100</h2>
-            <div class="flex justify-between items-end mt-2">
-                <span class="text-2xl font-mono text-danger font-bold">+15.1%</span>
-                <span class="text-xs text-slate-500">仓位: ¥4.9万</span>
+        <div id="portfolioContainer" class="space-y-4">
             </div>
-        </div>
 
-        <div class="bg-slate-800 p-5 rounded-xl border-l-4 border-red-500 shadow-lg">
-            <p class="text-slate-400 text-xs uppercase">重点关注 (回撤最大)</p>
-            <h2 class="text-xl font-bold text-white mt-1 truncate">港股医药ETF</h2>
-            <div class="flex justify-between items-end mt-2">
-                <span class="text-2xl font-mono text-success font-bold">-40.1%</span>
-                <span class="text-xs text-slate-500">需决策: 补仓/止损?</span>
-            </div>
-        </div>
     </div>
 
-    <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        
-        <div class="lg:col-span-2 space-y-4">
-            <div class="flex justify-between items-center px-1">
-                <h3 class="font-bold text-white">持仓明细 <span class="text-xs font-normal text-slate-400 bg-slate-800 px-2 py-1 rounded ml-2" id="itemCount">0 items</span></h3>
-                <div class="text-xs text-slate-500">
-                    <span class="mr-2"><span class="w-2 h-2 inline-block rounded-full bg-danger"></span> 盈利</span>
-                    <span><span class="w-2 h-2 inline-block rounded-full bg-success"></span> 亏损</span>
-                </div>
+    <div id="tradeModal" class="fixed inset-0 bg-black/80 backdrop-blur-sm hidden z-50 flex items-center justify-center p-4">
+        <div class="bg-card w-full max-w-md rounded-2xl border border-slate-600 shadow-2xl overflow-hidden animate-fade-in-up">
+            <div class="p-4 border-b border-slate-700 flex justify-between items-center bg-slate-800">
+                <h3 class="text-white font-bold"><i class="fa-solid fa-pen-nib mr-2 text-accent"></i>录入交易</h3>
+                <button onclick="closeModal()" class="text-slate-400 hover:text-white"><i class="fa-solid fa-times"></i></button>
             </div>
             
-            <div id="portfolioList" class="space-y-3">
-                </div>
-        </div>
-
-        <div class="space-y-6">
-            <div class="bg-card border border-slate-700 rounded-xl p-5">
-                <h3 class="font-bold text-white mb-4"><i class="fa-solid fa-user-doctor text-accent mr-2"></i>CIO 诊断</h3>
-                
-                <div class="mb-4">
-                    <p class="text-xs text-slate-400 mb-1">风格分析</p>
-                    <div class="flex flex-wrap gap-2">
-                        <span class="text-xs bg-slate-700 text-slate-300 px-2 py-1 rounded">核心宽基稳健</span>
-                        <span class="text-xs bg-slate-700 text-slate-300 px-2 py-1 rounded">QDII分散配置</span>
-                        <span class="text-xs bg-yellow-900/50 text-yellow-500 px-2 py-1 rounded border border-yellow-700/50">波段操作频繁</span>
-                    </div>
+            <div class="p-6 space-y-4">
+                <div class="flex gap-2 justify-center pb-2">
+                    <button type="button" onclick="setCategory('cn')" class="text-xs border border-slate-600 px-3 py-1 rounded-full text-slate-300 hover:bg-accent hover:border-accent hover:text-white transition">A股</button>
+                    <button type="button" onclick="setCategory('global')" class="text-xs border border-slate-600 px-3 py-1 rounded-full text-slate-300 hover:bg-purple-600 hover:border-purple-600 hover:text-white transition">美股/QDII</button>
+                    <button type="button" onclick="setCategory('cash')" class="text-xs border border-slate-600 px-3 py-1 rounded-full text-slate-300 hover:bg-emerald-600 hover:border-emerald-600 hover:text-white transition">现金变动</button>
                 </div>
 
-                <div class="space-y-3">
-                    <div class="bg-slate-800/50 p-3 rounded text-sm text-slate-300 border-l-2 border-danger">
-                        <span class="font-bold text-danger block mb-1">👍 亮点：通信ETF (515880)</span>
-                        成本优势极大（翻倍收益），这是典型的“戴维斯双击”成功案例。建议作为长期底仓，不要轻易卖飞。
+                <div class="grid grid-cols-2 gap-4">
+                    <div>
+                        <label class="block text-[10px] text-slate-400 uppercase mb-1">代码/名称</label>
+                        <input type="text" id="inputCode" placeholder="如 NVDA" class="w-full bg-slate-900 border border-slate-600 rounded p-2 text-white focus:border-accent outline-none text-sm">
                     </div>
-                    
-                    <div class="bg-slate-800/50 p-3 rounded text-sm text-slate-300 border-l-2 border-success">
-                        <span class="font-bold text-success block mb-1">⚠️ 警报：港股医药 (513200)</span>
-                        当前亏损 -40%。技术面处于深水区。根据您的《清仓记录》，您之前有割肉“长风药业”的操作。
-                        <br><br>
-                        <button class="w-full bg-slate-700 hover:bg-slate-600 text-xs py-1 rounded transition">生成专项拯救计划</button>
-                    </div>
-
-                    <div class="bg-slate-800/50 p-3 rounded text-sm text-slate-300 border-l-2 border-warning">
-                        <span class="font-bold text-warning block mb-1">⚡ 提醒：频繁T+0</span>
-                        检测到 `科创板50` 和 `光伏` 存在大量短期买卖。
-                        <br>AlphaLog 建议：请确保每次波段利润覆盖手续费摩擦。
+                    <div>
+                        <label class="block text-[10px] text-slate-400 uppercase mb-1">金额 (市值)</label>
+                        <input type="number" id="inputValue" placeholder="10000" class="w-full bg-slate-900 border border-slate-600 rounded p-2 text-white focus:border-accent outline-none text-sm">
                     </div>
                 </div>
+
+                <div>
+                    <label class="block text-[10px] text-slate-400 uppercase mb-1">当前盈亏率 (%)</label>
+                    <div class="flex items-center space-x-2">
+                         <input type="number" id="inputPl" placeholder="-5.2" class="w-full bg-slate-900 border border-slate-600 rounded p-2 text-white focus:border-accent outline-none text-sm">
+                         <span class="text-xs text-slate-500">%</span>
+                    </div>
+                </div>
+
+                <div>
+                    <label class="block text-[10px] text-accent font-bold uppercase mb-1">CIO 必填：持仓逻辑</label>
+                    <textarea id="inputLogic" class="w-full bg-slate-900 border border-slate-600 rounded p-2 text-white text-sm h-20 focus:border-accent outline-none" placeholder="为什么持有？计划什么时候卖？..."></textarea>
+                </div>
+
+                <button onclick="addTransaction()" class="w-full bg-accent hover:bg-blue-600 text-white font-bold py-3 rounded-xl transition shadow-lg shadow-blue-900/50">
+                    确认记账
+                </button>
             </div>
         </div>
     </div>
 
     <script>
-        // ==========================================
-        // 🟢 您的真实数据 (从 Excel 提取)
-        // ==========================================
-        const rawData = [
-            // --- 现金 ---
-            { code: "USD", name: "美元现金储备", value: 18000, pl_rate: 0.05, type: "cash", cost: 1, currency: "USD" },
-            
-            // --- 宽基/核心 (Core) ---
-            { code: "004742", name: "易方达深证100联接", value: 49186.49, pl_rate: 0.1510, type: "fund", cost: 1.68, currency: "CNY" },
-            { code: "007339", name: "易方达沪深300联接", value: 44016.20, pl_rate: 0.1351, type: "fund", cost: 1.78, currency: "CNY" },
-            { code: "159915", name: "创业板ETF", value: 5202.00, pl_rate: 0.0160, type: "etf", cost: 3.06, currency: "CNY" },
-            { code: "159781", name: "科创创业50", value: 14905.80, pl_rate: 0.0457, type: "etf", cost: 0.88, currency: "CNY" },
-            
-            // --- 行业/策略 (Satellite) ---
-            { code: "515880", name: "通信ETF", value: 2826.00, pl_rate: 0.9170, type: "etf", cost: 1.47, currency: "CNY", highlight: "best" }, // 盈亏率极高
-            { code: "512400", name: "有色ETF", value: 14406.00, pl_rate: 0.0442, type: "etf", cost: 1.71, currency: "CNY" },
-            { code: "560980", name: "光伏龙头ETF", value: 16445.80, pl_rate: 0.0505, type: "etf", cost: 0.69, currency: "CNY" },
-            { code: "009505", name: "富国上海金ETF联接", value: 8324.46, pl_rate: 0.0255, type: "fund", cost: 1.78, currency: "CNY" },
-            { code: "512820", name: "银行股基", value: 4260.00, pl_rate: 0.0131, type: "etf", cost: 1.42, currency: "CNY" },
-            
-            // --- 困难户 (Problematic) ---
-            { code: "513200", name: "港股医药ETF", value: 2558.40, pl_rate: -0.4009, type: "etf", cost: 1.06, currency: "CNY", highlight: "worst" },
-            { code: "008764", name: "天弘越南市场(QDII)", value: 9073.04, pl_rate: -0.0750, type: "qdii", cost: 1.74, currency: "CNY" },
-            { code: "588290", name: "芯片科创ETF", value: 8003.10, pl_rate: -0.0238, type: "etf", cost: 2.16, currency: "CNY" },
-            { code: "002648", name: "卫星化学", value: 0, pl_rate: -0.0384, type: "stock", cost: 16.27, currency: "CNY", note: "清仓中?" }, // 金额0但有盈亏记录
+        // 1. 初始化数据 (包含分类标签)
+        let myData = [
+            // --- A股 (CNY) ---
+            { id: 1, name: "易方达深证100", code: "004742", value: 49186, pl: 15.1, category: "cn", logic: "核心宽基底仓" },
+            { id: 2, name: "易方达沪深300", code: "007339", value: 44016, pl: 13.5, category: "cn", logic: "核心宽基底仓" },
+            { id: 3, name: "光伏龙头ETF", code: "560980", value: 16445, pl: 5.0, category: "cn", logic: "行业轮动配置" },
+            { id: 4, name: "科创创业50", code: "159781", value: 14905, pl: 4.5, category: "cn", logic: "科技成长方向" },
+            { id: 5, name: "有色ETF", code: "512400", value: 14406, pl: 4.4, category: "cn", logic: "周期资源股" },
+            { id: 6, name: "富国上海金", code: "009505", value: 8324, pl: 2.5, category: "cn", logic: "黄金避险" },
+            { id: 7, name: "芯片科创ETF", code: "588290", value: 8003, pl: -2.3, category: "cn", logic: "半导体复苏逻辑（套牢中）" },
+            { id: 8, name: "通信ETF", code: "515880", value: 2826, pl: 91.7, category: "cn", logic: "MVP持仓，成本极低" },
 
-            // --- 其他 QDII ---
-            { code: "513880", name: "日经225 ETF", value: 14711.70, pl_rate: -0.0664, type: "etf", cost: 1.65, currency: "CNY" }, // 场内
-            { code: "020712", name: "华安日经225联接", value: 9801.22, pl_rate: 0.0535, type: "qdii", cost: 1.08, currency: "CNY" }, // 场外
-            { code: "017436", name: "华宝纳斯达克精选", value: 6059.19, pl_rate: -0.0330, type: "qdii", cost: 2.28, currency: "CNY" },
-            { code: "007455", name: "富国蓝筹QDII", value: 4806.39, pl_rate: 0.0233, type: "qdii", cost: 3.12, currency: "CNY" },
+            // --- 全球/QDII (Global) ---
+            { id: 10, name: "日经225 ETF", code: "513880", value: 14711, pl: -6.6, category: "global", logic: "分散国别风险" },
+            { id: 11, name: "天弘越南市场", code: "008764", value: 9073, pl: -7.5, category: "global", logic: "新兴市场配置" },
+            { id: 12, name: "华宝纳斯达克", code: "017436", value: 6059, pl: -3.3, category: "global", logic: "美股科技" },
+            { id: 13, name: "港股医药ETF", code: "513200", value: 2558, pl: -40.1, category: "global", logic: "严重超跌，等待反弹决策" },
+
+            // --- 现金 (Cash) ---
+            { id: 20, name: "美元现金储备", code: "USD", value: 18000, pl: 5.0, category: "cash", logic: "购车基金/避险储备", currency: "USD" }
         ];
 
-        function updateDashboard() {
+        let currentTab = 'all';
+
+        // 渲染函数
+        function renderPortfolio() {
+            const container = document.getElementById('portfolioContainer');
+            container.innerHTML = ''; // 清空
+
             const usdRate = parseFloat(document.getElementById('exchangeRate').value);
-            const list = document.getElementById('portfolioList');
             
-            let totalCNY = 0;
-            let listHTML = '';
-
-            // 排序：按金额大小排序，方便看重点
-            const sortedData = rawData.sort((a, b) => b.value - a.value);
-            
-            document.getElementById('itemCount').innerText = rawData.length + " items";
-
-            sortedData.forEach(item => {
-                // 计算当前价值 (CNY)
-                let currentValCNY = item.value;
-                let displayVal = `¥${item.value.toLocaleString()}`;
-                
-                if (item.currency === 'USD') {
-                    currentValCNY = item.value * usdRate;
-                    displayVal = `$${item.value.toLocaleString()}`;
-                }
-
-                if(item.value > 0) { // 只统计有持仓的
-                    totalCNY += currentValCNY;
-                }
-
-                // 颜色逻辑：中国习惯红涨绿跌
-                const isProfit = item.pl_rate >= 0;
-                const plColor = isProfit ? 'text-danger' : 'text-success';
-                const plBg = isProfit ? 'bg-danger/10' : 'bg-success/10';
-                const plIcon = isProfit ? 'fa-arrow-up' : 'fa-arrow-down';
-                const plSign = isProfit ? '+' : '';
-
-                // 标签样式
-                let typeTagColor = 'bg-slate-700 text-slate-400';
-                if(item.type === 'cash') typeTagColor = 'bg-emerald-900 text-emerald-400 border border-emerald-700';
-                if(item.type === 'fund') typeTagColor = 'bg-blue-900 text-blue-300 border border-blue-700';
-                if(item.type === 'qdii') typeTagColor = 'bg-purple-900 text-purple-300 border border-purple-700';
-
-                // 生成列表 HTML
-                listHTML += `
-                <div class="bg-card p-4 rounded-xl border border-slate-700 flex justify-between items-center hover:bg-slate-700/50 transition group">
-                    <div class="flex items-center space-x-3">
-                        <div class="w-10 h-10 rounded-full ${plBg} flex items-center justify-center shrink-0">
-                            <i class="fa-solid ${plIcon} ${plColor} text-sm"></i>
-                        </div>
-                        <div>
-                            <div class="flex items-center space-x-2">
-                                <span class="font-bold text-white text-sm md:text-base">${item.name}</span>
-                                <span class="text-[10px] px-1.5 py-0.5 rounded ${typeTagColor} uppercase">${item.type}</span>
-                                <span class="text-[10px] text-slate-500 font-mono">${item.code}</span>
-                            </div>
-                            <div class="flex space-x-3 mt-1 text-xs text-slate-400">
-                                <span>成本: ${item.cost}</span>
-                                ${item.highlight === 'worst' ? '<span class="text-success font-bold px-1 bg-success/20 rounded">需处理</span>' : ''}
-                                ${item.highlight === 'best' ? '<span class="text-danger font-bold px-1 bg-danger/20 rounded">MVP</span>' : ''}
-                            </div>
-                        </div>
-                    </div>
-                    
-                    <div class="text-right">
-                        <div class="font-mono text-white font-bold">${displayVal}</div>
-                        <div class="text-xs ${plColor} font-bold mt-0.5">${plSign}${(item.pl_rate * 100).toFixed(2)}%</div>
-                    </div>
-                </div>
-                `;
-            });
-
-            // 渲染列表
-            list.innerHTML = listHTML;
-
-            // 更新总资产
-            document.getElementById('totalAsset').innerText = "¥ " + totalCNY.toLocaleString('zh-CN', { maximumFractionDigits: 0 });
-
-            // 更新购车逻辑 (1.8W USD)
-            const carTarget = 300000;
-            const usdCash = rawData.find(i => i.code === 'USD');
-            if (usdCash) {
-                const usdInCny = usdCash.value * usdRate;
-                document.getElementById('usdToCnyDisplay').innerText = `≈ ¥ ${usdInCny.toLocaleString('zh-CN', { maximumFractionDigits: 0 })}`;
-                const percent = Math.min((usdInCny / carTarget) * 100, 100);
-                document.getElementById('carProgress').style.width = percent + "%";
-                document.getElementById('carPercent').innerText = percent.toFixed(1) + "%";
+            // 1. 过滤数据
+            let filteredData = myData;
+            if (currentTab !== 'all') {
+                filteredData = myData.filter(item => item.category === currentTab);
             }
+
+            // 2. 按分类分组渲染 (如果是 All Tab)
+            if (currentTab === 'all') {
+                renderSection("🇨🇳 A股核心资产", myData.filter(i => i.category === 'cn'), usdRate);
+                renderSection("🌍 全球/QDII资产", myData.filter(i => i.category === 'global'), usdRate);
+                renderSection("💵 现金储备", myData.filter(i => i.category === 'cash'), usdRate);
+            } else {
+                // 如果是特定 Tab，直接渲染列表
+                renderSection("", filteredData, usdRate);
+            }
+
+            updateTotalAssets(usdRate);
         }
 
-        // 初始化
-        updateDashboard();
+        // 渲染单个区块
+        function renderSection(title, items, rate) {
+            if (items.length === 0) return;
+
+            const container = document.getElementById('portfolioContainer');
+            
+            // 如果有标题（All模式下），加个小标题
+            if (title) {
+                container.innerHTML += `<h3 class="text-xs font-bold text-slate-500 uppercase tracking-wider mt-6 mb-2 ml-1">${title}</h3>`;
+            }
+
+            let html = '';
+            items.sort((a,b) => b.value - a.value).forEach(item => {
+                let val = item.value;
+                let symbol = '¥';
+                if (item.category === 'cash' && item.currency === 'USD') {
+                    val = item.value * rate; // 转RMB计算排序和展示
+                    symbol = '$'; // 展示原币种符号
+                }
+                
+                // 颜色逻辑
+                const isProfit = item.pl >= 0;
+                const colorClass = isProfit ? 'text-danger' : 'text-success';
+                const plText = (item.pl > 0 ? '+' : '') + item.pl + '%';
+
+                // 判断是否是美元显示原值
+                const displayValue = (item.currency === 'USD') ? 
+                    `$${item.value.toLocaleString()}` : 
+                    `¥${item.value.toLocaleString()}`;
+
+                html += `
+                <div class="bg-card p-4 rounded-xl border border-slate-700/50 hover:border-slate-600 transition flex justify-between items-start group relative overflow-hidden">
+                    
+                    <div>
+                        <div class="flex items-center gap-2">
+                            <span class="font-bold text-white">${item.name}</span>
+                            <span class="text-[10px] text-slate-500 font-mono bg-slate-800 px-1 rounded">${item.code}</span>
+                        </div>
+                        <div class="mt-1.5 flex items-start text-xs text-slate-400 max-w-[200px] md:max-w-xs">
+                            <i class="fa-solid fa-quote-left text-slate-600 text-[10px] mr-1.5 mt-0.5"></i>
+                            <span class="italic leading-tight">${item.logic || '暂无逻辑备注'}</span>
+                        </div>
+                    </div>
+
+                    <div class="text-right z-10">
+                        <div class="font-bold text-white font-mono">${displayValue}</div>
+                        <div class="text-xs font-bold ${colorClass} mt-0.5 bg-slate-800/50 px-1.5 py-0.5 rounded inline-block">
+                            ${plText}
+                        </div>
+                    </div>
+                </div>`;
+            });
+
+            container.innerHTML += `<div class="grid gap-3">${html}</div>`;
+        }
+
+        // 计算总资产
+        function updateTotalAssets(rate) {
+            let total = 0;
+            let usdTotalInCny = 0;
+
+            myData.forEach(item => {
+                if (item.currency === 'USD') {
+                    let cnyVal = item.value * rate;
+                    total += cnyVal;
+                    if(item.category === 'cash') usdTotalInCny += cnyVal;
+                } else {
+                    total += item.value;
+                }
+            });
+
+            document.getElementById('totalAsset').innerText = "¥ " + total.toLocaleString('zh-CN', { maximumFractionDigits: 0 });
+            
+            // 更新购车进度
+            document.getElementById('usdCnyVal').innerText = `≈ ¥${usdTotalInCny.toLocaleString('zh-CN', { maximumFractionDigits: 0 })}`;
+            const percent = Math.min((usdTotalInCny / 300000) * 100, 100);
+            document.getElementById('carProgress').style.width = percent + "%";
+            document.getElementById('carPercent').innerText = percent.toFixed(1) + "%";
+        }
+
+        // Tab 切换逻辑
+        function switchTab(tab) {
+            currentTab = tab;
+            // 更新按钮样式
+            document.querySelectorAll('.tab-btn').forEach(btn => {
+                if(btn.dataset.tab === tab) {
+                    btn.classList.add('bg-accent', 'text-white');
+                    btn.classList.remove('text-slate-400');
+                } else {
+                    btn.classList.remove('bg-accent', 'text-white');
+                    btn.classList.add('text-slate-400');
+                }
+            });
+            renderPortfolio();
+        }
+
+        function updateDashboard() {
+            renderPortfolio();
+        }
+
+        // --- 模态框逻辑 ---
+        function openModal() {
+            document.getElementById('tradeModal').classList.remove('hidden');
+        }
+        function closeModal() {
+            document.getElementById('tradeModal').classList.add('hidden');
+        }
+        
+        let selectedCategory = 'cn';
+        function setCategory(cat) {
+            selectedCategory = cat;
+            // 简单的视觉反馈
+            alert("已选择分类: " + (cat==='cn'?'A股':(cat==='global'?'美股/QDII':'现金'))); 
+        }
+
+        function addTransaction() {
+            const code = document.getElementById('inputCode').value;
+            const value = parseFloat(document.getElementById('inputValue').value);
+            const pl = parseFloat(document.getElementById('inputPl').value);
+            const logic = document.getElementById('inputLogic').value;
+
+            if(!code || !value) {
+                alert("请至少填写代码和金额");
+                return;
+            }
+
+            // 添加到数据源
+            const newItem = {
+                id: Date.now(),
+                name: code, // 暂时用代码当名字
+                code: code,
+                value: value,
+                pl: pl || 0,
+                category: selectedCategory,
+                logic: logic,
+                currency: selectedCategory === 'cash' ? 'USD' : 'CNY' // 简单假设现金都是USD
+            };
+
+            myData.unshift(newItem); // 加到最前面
+            closeModal();
+            renderPortfolio(); // 重新渲染
+            
+            // 清空表单
+            document.getElementById('inputCode').value = '';
+            document.getElementById('inputValue').value = '';
+            document.getElementById('inputLogic').value = '';
+        }
+
+        // 启动
+        // 初始化 Tab 样式
+        switchTab('all');
     </script>
 </body>
 </html>
